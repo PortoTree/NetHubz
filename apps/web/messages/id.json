@@ -1036,7 +1036,8 @@
         "hideReplies": "Sembunyikan balasan",
         "viewReplies": "Lihat {count} balasan",
         "loadMoreReplies": "Muat balasan lainnya",
-        "writeReply": "Tulis balasan..."
+        "writeReply": "Tulis balasan...",
+        "sending": "Mengirim..."
     },
     "profileMediaOptions": {
         "avatarTitle": "Foto Profil",

@@ -235,7 +235,7 @@ export function CommentItem({
           }
 
           const top = Math.max(0, isSiblingTarget ? deltaYTop : 0);
-          const height = Math.max(0, (deltaYBottom - 48) - top);
+          const height = Math.max(0, (deltaYBottom - 16) - top);
 
           setTraceStyle(prev => {
             if (prev.top === `${top}px` && prev.height === `${height}px`) return prev;
@@ -270,28 +270,28 @@ export function CommentItem({
 
   return (
     <>
-      <div id={`comment-${comment.id}`} className={`flex gap-3 group relative transition-colors duration-500 ${depth > 0 ? 'mt-3' : ''}`}>
+      <div id={`comment-${comment.id}`} className={`flex gap-3 group relative transition-all duration-300 ${comment.isOptimistic ? 'opacity-70' : 'opacity-100'} ${depth > 0 ? 'mt-3' : ''}`}>
         {depth > 0 && (
-          <div className={`absolute -left-[33px] top-[-16px] w-[49px] h-[32px] border-b-[2px] border-l-[2px] rounded-bl-[12px] z-30 transition-all duration-300 ease-out ${isTracingThisLine ? 'border-b-blue-500 border-l-blue-500' : ((isParentReplying || isBetweenTrace) ? 'border-b-gray-300 dark:border-b-[#4E4F50] border-l-blue-500' : 'border-gray-300 dark:border-[#4E4F50]')}`} />
+          <div className={`absolute -left-[33px] top-[-16px] w-[49px] h-[32px] border-b-[1.5px] border-l-[1.5px] rounded-bl-[12px] z-30 transition-all duration-300 ease-out ${isTracingThisLine ? 'border-b-blue-500 border-l-blue-500' : ((isParentReplying || isBetweenTrace) ? 'border-b-[#ECECEC] dark:border-b-[#333538] border-l-blue-500' : 'border-[#ECECEC] dark:border-[#333538]')}`} />
         )}
         {depth > 0 && isTargetOfTrace && effectiveTraceInfo?.targetId !== effectiveTraceInfo?.parentId && (
-          <div className="absolute -left-[33px] top-[14px] w-[49px] h-[18px] border-t-[2px] border-l-[2px] border-blue-500 rounded-tl-[12px] z-40 pointer-events-none transition-all duration-300 ease-out" />
+          <div className="absolute -left-[33px] top-[14px] w-[49px] h-[18px] border-t-[1.5px] border-l-[1.5px] border-blue-500 rounded-tl-[12px] z-40 pointer-events-none transition-all duration-300 ease-out" />
         )}
         {depth > 0 && isLast && (
           <div className={`absolute -left-[34px] top-[4px] bottom-[-50px] w-[4px] z-20 ${bgColorClass}`} />
         )}
         {(showReplies || inputElement) && depth < 2 && (
-          <div className={`absolute left-[15px] top-[32px] bottom-[24px] border-l-[2px] ${isReplying ? 'border-blue-500' : 'border-gray-300 dark:border-[#4E4F50]'} z-10`}>
-            {isTracingParentLine && (
+          <div className={`absolute left-[15px] top-[32px] bottom-[24px] border-l-[1.5px] ${isReplying ? 'border-blue-500' : 'border-[#ECECEC] dark:border-[#333538]'} z-10`}>
+            {!isReplying && isTracingParentLine && (
               <div
-                className="absolute -left-[2px] border-l-[2px] border-blue-500 transition-all duration-300 ease-out z-20"
+                className="absolute -left-[1.5px] w-[1.5px] bg-blue-500 transition-all duration-300 ease-out z-20"
                 style={traceStyle}
               />
             )}
           </div>
         )}
         {isReplying && depth >= 2 && inputElement && (
-          <div className="absolute left-[15px] top-[32px] bottom-[-28px] border-l-[2px] border-blue-500 z-10" />
+          <div className="absolute left-[15px] top-[32px] bottom-[-28px] border-l-[1.5px] border-blue-500 z-10" />
         )}
         <img src={comment.author?.profile?.avatarUrl || "/default-avatar.svg"} alt="Avatar" className="w-8 h-8 rounded-full object-cover shrink-0 cursor-pointer relative z-50" onClick={() => router.push(`/${locale}/p/${comment.author?.username}/${comment.author?.id}`)} />
         <div className="flex-1 relative z-40">
@@ -327,23 +327,39 @@ export function CommentItem({
               
               <ReactionButton 
                 myReaction={isLiked} 
-                onReact={onLikeClick} 
+                onReact={comment.isOptimistic ? () => {} : onLikeClick} 
                 count={likeCount} 
                 hideTooltip={true}
-                containerClassName={`!flex-none ${!targetComment ? '-ml-2' : ''}`}
+                containerClassName={`!flex-none ${!targetComment ? '-ml-2' : ''} ${comment.isOptimistic ? 'pointer-events-none opacity-50' : ''}`}
                 className="flex items-center gap-1.5 hover:bg-gray-100 dark:hover:bg-[#3A3B3C] px-2 py-1.5 rounded-full transition-colors bg-transparent"
               />
 
-              <button onClick={() => {
-                const parentIdForDB = depth >= 2 ? comment.parentId : comment.id;
-                handleReplyClick(comment.author?.username, comment.author?.id, comment.author?.profile?.displayName || comment.author?.username, comment.id, parentIdForDB, currentRootId);
-              }} className="flex items-center gap-1.5 hover:bg-gray-100 dark:hover:bg-[#3A3B3C] px-3 py-1.5 rounded-full transition-colors">
+              <button 
+                disabled={comment.isOptimistic}
+                onClick={() => {
+                  const parentIdForDB = depth >= 2 ? comment.parentId : comment.id;
+                  handleReplyClick(comment.author?.username, comment.author?.id, comment.author?.profile?.displayName || comment.author?.username, comment.id, parentIdForDB, currentRootId);
+                }} 
+                className={`flex items-center gap-1.5 hover:bg-gray-100 dark:hover:bg-[#3A3B3C] px-3 py-1.5 rounded-full transition-colors ${comment.isOptimistic ? 'pointer-events-none opacity-50' : ''}`}
+              >
                 <img src="/reply.svg" alt="Reply" className="w-[16px] h-[16px] opacity-60 dark:invert" />
                 {t("postModal.reply") || "Balas"}
               </button>
             </div>
-            <span className="text-[12px] text-gray-500 dark:text-gray-400 font-normal ml-2">
-              {formatPostTime(comment.createdAt, t, locale)}
+            <span className="text-[12px] text-gray-500 dark:text-gray-400 font-normal ml-2 flex items-center gap-1.5">
+              {comment.isOptimistic ? (
+                <>
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse inline-block" />
+                  <span className="text-blue-500 font-medium text-[11.5px]">
+                    {(() => {
+                      const txt = t("postModal.sending");
+                      return (!txt || txt === "postModal.sending") ? (locale === "en" ? "Sending..." : "Mengirim...") : txt;
+                    })()}
+                  </span>
+                </>
+              ) : (
+                formatPostTime(comment.createdAt, t, locale)
+              )}
             </span>
           </div>
           </div>
@@ -396,7 +412,7 @@ export function CommentItem({
 
                   {isLoading && (
                     <div className="relative mt-3">
-                      <div className={`absolute -left-[33px] top-[-16px] w-[49px] h-[32px] border-b-[2px] border-l-[2px] ${isReplying ? 'border-blue-500' : 'border-gray-300 dark:border-[#4E4F50]'} rounded-bl-[12px] z-30`} />
+                      <div className={`absolute -left-[33px] top-[-16px] w-[49px] h-[32px] border-b-[1.5px] border-l-[1.5px] ${isReplying ? 'border-blue-500' : 'border-[#ECECEC] dark:border-[#333538]'} rounded-bl-[12px] z-30`} />
                       {!inputElement && (
                         <div className={`absolute -left-[34px] top-[4px] bottom-[-50px] w-[4px] z-20 ${bgColorClass}`} />
                       )}
@@ -412,7 +428,7 @@ export function CommentItem({
 
                   {inputElement && (
                     <div id={`comment-input-${replyingTo?.commentId}`} className="relative mt-3">
-                      <div className="absolute -left-[33px] top-[-16px] w-[49px] h-[32px] border-b-[2px] border-l-[2px] border-blue-500 rounded-bl-[12px] z-30" />
+                      <div className="absolute -left-[33px] top-[-16px] w-[49px] h-[32px] border-b-[1.5px] border-l-[1.5px] border-blue-500 rounded-bl-[12px] z-30" />
                       <div className={`absolute -left-[34px] top-[4px] bottom-[-50px] w-[4px] z-20 ${bgColorClass}`} />
                       <div className="relative z-40">
                         {inputElement}
@@ -835,50 +851,166 @@ export default function PostDetailModal({ isOpen, onClose, post, currentUser, ta
     await toggleLike(currentUser.id, "post", post.id);
   };
 
-  const handleInlineSubmit = async (text: string, parentId: string) => {
+  const handleInlineSubmit = async (text: string, parentId: string, rootId?: string) => {
     if (!currentUser) return;
-    const res = await addComment(currentUser.id, "post", post.id, text, parentId);
-    if (res.success && res.comment) {
-      // Recursive helper to find and append the reply in the tree
-      const appendReply = (commentsList: any[], targetParentId: string): any[] => {
-        return commentsList.map(c => {
-          if (c.id === targetParentId) {
-            return {
-              ...c,
-              optimisticReplies: [...(c.optimisticReplies || []), res.comment]
-            };
-          }
-          if (c.optimisticReplies && c.optimisticReplies.length > 0) {
-            return {
-              ...c,
-              optimisticReplies: appendReply(c.optimisticReplies, targetParentId)
-            };
-          }
-          return c;
-        });
-      };
 
-      setComments(prev => appendReply(prev, parentId));
-      setReplyingTo(null);
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const optimisticComment = {
+      id: tempId,
+      content: text,
+      createdAt: new Date().toISOString(),
+      parentId,
+      authorId: currentUser.id,
+      author: {
+        id: currentUser.id,
+        username: currentUser.username,
+        profile: {
+          displayName: currentUser.profile?.displayName || currentUser.username,
+          avatarUrl: currentUser.profile?.avatarUrl || "/default-avatar.svg"
+        }
+      },
+      _count: { likes: 0, replies: 0 },
+      topReactions: [],
+      myReaction: null,
+      isOptimistic: true
+    };
+
+    // Recursive helper to append reply to parent or root
+    const appendReply = (commentsList: any[], targetParentId: string, fallbackRootId?: string): { updated: boolean, list: any[] } => {
+      let updated = false;
+      const newList = commentsList.map(c => {
+        if (c.id === targetParentId) {
+          updated = true;
+          return {
+            ...c,
+            _count: { ...c._count, replies: (c._count?.replies || 0) + 1 },
+            optimisticReplies: [...(c.optimisticReplies || []), optimisticComment]
+          };
+        }
+        if (c.optimisticReplies && c.optimisticReplies.length > 0) {
+          const res = appendReply(c.optimisticReplies, targetParentId, fallbackRootId);
+          if (res.updated) {
+            updated = true;
+            return {
+              ...c,
+              optimisticReplies: res.list
+            };
+          }
+        }
+        return c;
+      });
+
+      if (!updated && fallbackRootId) {
+        return {
+          updated: true,
+          list: newList.map(c => {
+            if (c.id === fallbackRootId) {
+              return {
+                ...c,
+                _count: { ...c._count, replies: (c._count?.replies || 0) + 1 },
+                optimisticReplies: [...(c.optimisticReplies || []), optimisticComment]
+              };
+            }
+            return c;
+          })
+        };
+      }
+
+      return { updated, list: newList };
+    };
+
+    // Recursive helper to replace tempId with real comment or remove if failed
+    const updateOrRemoveReply = (commentsList: any[], targetTempId: string, realItem: any | null): any[] => {
+      return commentsList.map(c => {
+        if (c.optimisticReplies && c.optimisticReplies.length > 0) {
+          const hasTarget = c.optimisticReplies.some((r: any) => r.id === targetTempId);
+          if (hasTarget) {
+            const nextReplies = realItem
+              ? c.optimisticReplies.map((r: any) => r.id === targetTempId ? realItem : r)
+              : c.optimisticReplies.filter((r: any) => r.id !== targetTempId);
+            return {
+              ...c,
+              _count: realItem ? c._count : { ...c._count, replies: Math.max(0, (c._count?.replies || 1) - 1) },
+              optimisticReplies: nextReplies
+            };
+          }
+          return {
+            ...c,
+            optimisticReplies: updateOrRemoveReply(c.optimisticReplies, targetTempId, realItem)
+          };
+        }
+        return c;
+      });
+    };
+
+    // 1. Instantly show reply in UI and close input box
+    setComments(prev => appendReply(prev, parentId, rootId).list);
+    setReplyingTo(null);
+
+    // 2. Perform background request
+    try {
+      const res = await addComment(currentUser.id, "post", post.id, text, parentId);
+      if (res.success && res.comment) {
+        setComments(prev => updateOrRemoveReply(prev, tempId, res.comment));
+      } else {
+        setComments(prev => updateOrRemoveReply(prev, tempId, null));
+      }
+    } catch (err) {
+      console.error("Error submitting inline reply:", err);
+      setComments(prev => updateOrRemoveReply(prev, tempId, null));
     }
   };
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!commentText.trim() || !currentUser || isSubmitting) return;
+    const textToSend = commentText.trim();
+    if (!textToSend || !currentUser || isSubmitting) return;
 
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+    const optimisticComment = {
+      id: tempId,
+      content: textToSend,
+      createdAt: new Date().toISOString(),
+      parentId: null,
+      authorId: currentUser.id,
+      author: {
+        id: currentUser.id,
+        username: currentUser.username,
+        profile: {
+          displayName: currentUser.profile?.displayName || currentUser.username,
+          avatarUrl: currentUser.profile?.avatarUrl || "/default-avatar.svg"
+        }
+      },
+      _count: { likes: 0, replies: 0 },
+      topReactions: [],
+      myReaction: null,
+      isOptimistic: true
+    };
+
+    // 1. Instantly clear input & show comment in list
+    setCommentText("");
+    if (editor) editor.commands.clearContent();
+    setComments(prev => [optimisticComment, ...prev]);
+
+    // 2. Perform background request
     setIsSubmitting(true);
-    const res = await addComment(currentUser.id, "post", post.id, commentText);
-    if (res.success && res.comment) {
-      setComments(prev => {
-        const next = [res.comment, ...prev];
-        commentsCache.set(post.id, { comments: next, nextCursor });
-        return next;
-      });
-      setCommentText("");
-      if (editor) editor.commands.clearContent();
+    try {
+      const res = await addComment(currentUser.id, "post", post.id, textToSend);
+      if (res.success && res.comment) {
+        setComments(prev => {
+          const next = prev.map(c => c.id === tempId ? res.comment : c);
+          commentsCache.set(post.id, { comments: next, nextCursor });
+          return next;
+        });
+      } else {
+        setComments(prev => prev.filter(c => c.id !== tempId));
+      }
+    } catch (err) {
+      console.error("Error submitting comment:", err);
+      setComments(prev => prev.filter(c => c.id !== tempId));
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   const handleLikeComment = async (commentId: string, reactionType: string = "LIKE") => {
@@ -1028,7 +1160,7 @@ export default function PostDetailModal({ isOpen, onClose, post, currentUser, ta
                               commentId: replyingTo.commentId
                             }}
                             onCancel={() => setReplyingTo(null)}
-                            onSubmit={(text) => handleInlineSubmit(text, replyingTo.parentId!)}
+                            onSubmit={(text) => handleInlineSubmit(text, replyingTo.parentId!, replyingTo.rootId)}
                           />
                         );
                       }}

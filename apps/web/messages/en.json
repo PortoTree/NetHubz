@@ -1030,7 +1030,8 @@
         "hideReplies": "Hide replies",
         "viewReplies": "View {count} replies",
         "loadMoreReplies": "Load more replies",
-        "writeReply": "Write a reply..."
+        "writeReply": "Write a reply...",
+        "sending": "Sending..."
     },
     "profileMediaOptions": {
         "avatarTitle": "Profile Picture",
