@@ -36,25 +36,68 @@ export default function CommentInput({
   const t = useTranslations();
   const [editorHeight, setEditorHeight] = useState(38); // base height for a single line text
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
+    e.stopPropagation();
+
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {
+      // Ignore fallback
+    }
+
     const startY = e.clientY;
     const startHeight = editorHeight;
 
-    const onMouseMove = (moveEvent: MouseEvent) => {
-      // moving up decreases clientY, which means deltaY is positive, so height increases
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      moveEvent.preventDefault();
+      // Moving up decreases clientY, deltaY is positive, height increases
       const deltaY = startY - moveEvent.clientY;
-      const newHeight = Math.max(38, Math.min(200, startHeight + deltaY));
+      const newHeight = Math.max(38, Math.min(320, startHeight + deltaY));
       setEditorHeight(newHeight);
     };
 
-    const onMouseUp = () => {
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
+    const onPointerUp = (upEvent: PointerEvent) => {
+      try {
+        (e.target as HTMLElement).releasePointerCapture(upEvent.pointerId);
+      } catch {
+        // Ignore fallback
+      }
+      document.removeEventListener("pointermove", onPointerMove);
+      document.removeEventListener("pointerup", onPointerUp);
+      document.removeEventListener("pointercancel", onPointerUp);
     };
 
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
+    document.addEventListener("pointermove", onPointerMove);
+    document.addEventListener("pointerup", onPointerUp);
+    document.addEventListener("pointercancel", onPointerUp);
+  }, [editorHeight]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    const touch = e.touches[0];
+    if (!touch) return;
+    const startY = touch.clientY;
+    const startHeight = editorHeight;
+
+    const onTouchMove = (moveEvent: TouchEvent) => {
+      if (moveEvent.cancelable) moveEvent.preventDefault();
+      const currentTouch = moveEvent.touches[0];
+      if (!currentTouch) return;
+      const deltaY = startY - currentTouch.clientY;
+      const newHeight = Math.max(38, Math.min(320, startHeight + deltaY));
+      setEditorHeight(newHeight);
+    };
+
+    const onTouchEnd = () => {
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend", onTouchEnd);
+      document.removeEventListener("touchcancel", onTouchEnd);
+    };
+
+    document.addEventListener("touchmove", onTouchMove, { passive: false });
+    document.addEventListener("touchend", onTouchEnd);
+    document.addEventListener("touchcancel", onTouchEnd);
   }, [editorHeight]);
 
   return (
@@ -71,10 +114,12 @@ export default function CommentInput({
           
           {/* Top Drag Handle */}
           <div 
-            onMouseDown={handleMouseDown}
-            className="w-full flex justify-center py-1.5 cursor-ns-resize hover:bg-gray-200/50 dark:hover:bg-[#4E4F50]/50 rounded-t-xl -mt-1 mb-1 transition-colors group"
+            onPointerDown={handlePointerDown}
+            onTouchStart={handleTouchStart}
+            className="w-full flex justify-center py-2 cursor-ns-resize hover:bg-gray-200/50 dark:hover:bg-[#4E4F50]/50 rounded-t-xl -mt-1 mb-1 transition-colors group touch-none select-none active:cursor-grabbing"
+            style={{ touchAction: "none" }}
           >
-            <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-500 group-hover:bg-gray-400 dark:group-hover:bg-gray-400" />
+            <div className="w-10 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500 group-hover:bg-gray-500 dark:group-hover:bg-gray-400 transition-colors" />
           </div>
 
           <div className="flex items-end w-full">

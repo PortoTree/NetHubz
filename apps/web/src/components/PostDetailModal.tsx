@@ -457,23 +457,66 @@ export function InlineReplyInput({ currentUser, onSubmit, onCancel, initialMenti
   const startHeight = useRef(0);
   const formRef = useRef<HTMLFormElement>(null);
 
-  const handleDragStart = (e: React.MouseEvent) => {
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
+    e.stopPropagation();
+
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {
+      // Ignore fallback
+    }
+
     startY.current = e.clientY;
     startHeight.current = formRef.current ? formRef.current.clientHeight : 80;
 
-    document.addEventListener("mousemove", handleDrag);
-    document.addEventListener("mouseup", handleDragEnd);
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      moveEvent.preventDefault();
+      const delta = moveEvent.clientY - startY.current;
+      setInputHeight(Math.max(70, Math.min(600, startHeight.current + delta)));
+    };
+
+    const onPointerUp = (upEvent: PointerEvent) => {
+      try {
+        (e.target as HTMLElement).releasePointerCapture(upEvent.pointerId);
+      } catch {
+        // Ignore fallback
+      }
+      document.removeEventListener("pointermove", onPointerMove);
+      document.removeEventListener("pointerup", onPointerUp);
+      document.removeEventListener("pointercancel", onPointerUp);
+    };
+
+    document.addEventListener("pointermove", onPointerMove);
+    document.addEventListener("pointerup", onPointerUp);
+    document.addEventListener("pointercancel", onPointerUp);
   };
 
-  const handleDrag = (e: MouseEvent) => {
-    const delta = e.clientY - startY.current;
-    setInputHeight(Math.max(120, Math.min(600, startHeight.current + delta)));
-  };
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    const touch = e.touches[0];
+    if (!touch) return;
 
-  const handleDragEnd = () => {
-    document.removeEventListener("mousemove", handleDrag);
-    document.removeEventListener("mouseup", handleDragEnd);
+    startY.current = touch.clientY;
+    startHeight.current = formRef.current ? formRef.current.clientHeight : 80;
+
+    const onTouchMove = (moveEvent: TouchEvent) => {
+      if (moveEvent.cancelable) moveEvent.preventDefault();
+      const currentTouch = moveEvent.touches[0];
+      if (!currentTouch) return;
+      const delta = currentTouch.clientY - startY.current;
+      setInputHeight(Math.max(70, Math.min(600, startHeight.current + delta)));
+    };
+
+    const onTouchEnd = () => {
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend", onTouchEnd);
+      document.removeEventListener("touchcancel", onTouchEnd);
+    };
+
+    document.addEventListener("touchmove", onTouchMove, { passive: false });
+    document.addEventListener("touchend", onTouchEnd);
+    document.addEventListener("touchcancel", onTouchEnd);
   };
 
   useEffect(() => {
@@ -583,10 +626,12 @@ export function InlineReplyInput({ currentUser, onSubmit, onCancel, initialMenti
 
           {/* Drag Indicator */}
           <div
-            className="flex justify-center items-end absolute left-1/2 -translate-x-1/2 bottom-0 w-32 h-6 cursor-ns-resize pb-1.5 z-10"
-            onMouseDown={handleDragStart}
+            className="flex justify-center items-end absolute left-1/2 -translate-x-1/2 bottom-0 w-32 h-6 cursor-ns-resize pb-1.5 z-10 touch-none select-none active:cursor-grabbing"
+            style={{ touchAction: "none" }}
+            onPointerDown={handlePointerDown}
+            onTouchStart={handleTouchStart}
           >
-            <div className="w-6 h-[3px] rounded-full bg-gray-300 hover:bg-gray-400 dark:bg-gray-500/50 dark:hover:bg-gray-400 transition-colors pointer-events-none"></div>
+            <div className="w-8 h-1 rounded-full bg-gray-400 hover:bg-gray-500 dark:bg-gray-500 dark:hover:bg-gray-400 transition-colors pointer-events-none"></div>
           </div>
 
           {/* Actions */}
@@ -871,19 +916,36 @@ export default function PostDetailModal({ isOpen, onClose, post, currentUser, ta
 
       <div className={`w-full ${isExpanded ? 'md:max-w-2xl' : 'md:max-w-4xl'} h-full md:h-[95vh] md:max-h-[95vh] bg-white dark:bg-[#242526] rounded-none md:rounded-xl flex flex-col md:flex-row overflow-hidden shadow-none md:shadow-2xl border-0 md:border border-gray-200 dark:border-[#3E4042] relative transition-all duration-300`} onClick={e => e.stopPropagation()}>
 
-        {/* LEFT COLUMN - POST CONTENT */}
+        {/* MOBILE TOP HEADER (MOBILE ONLY) */}
+        <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-[#3E4042] bg-white dark:bg-[#242526] shrink-0 z-10">
+          <h2 className="font-bold text-[17px] text-gray-900 dark:text-white">
+            {t("postModal.postHeader") || "Postingan"}
+          </h2>
+          <button 
+            onClick={onClose} 
+            aria-label={t("postModal.close") || "Close"} 
+            className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#3A3B3C] hover:bg-gray-200 dark:hover:bg-[#4E4F50] text-gray-700 dark:text-[#E4E6EB] flex items-center justify-center transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* LEFT COLUMN - POST CONTENT (DESKTOP ONLY) */}
         {!isExpanded && (
-          <div className="w-full md:w-[50%] lg:w-[52%] flex flex-col overflow-y-auto border-b md:border-b-0 md:border-r border-gray-200 dark:border-[#3E4042] custom-scrollbar bg-[#F3F2EF] dark:bg-[#18191A] shrink-0 max-h-[45vh] md:max-h-none md:shrink">
-            <div className="w-full shrink-0 min-h-full p-0 md:p-2 pb-6 md:pb-4">
+          <div className="hidden md:flex md:w-[50%] lg:w-[52%] flex-col overflow-y-auto border-r border-gray-200 dark:border-[#3E4042] custom-scrollbar bg-[#F3F2EF] dark:bg-[#18191A]">
+            <div className="w-full shrink-0 min-h-full p-2 pb-4">
               <PostCard post={post} currentUser={currentUser} hideFooter={true} disableClicks={true} showAllReactions={true} />
             </div>
           </div>
         )}
 
-        {/* RIGHT COLUMN - COMMENTS */}
+        {/* RIGHT COLUMN - COMMENTS (DESKTOP) / UNIFIED POST & COMMENTS (MOBILE) */}
         <div className={`w-full flex-1 md:flex-initial min-h-0 flex flex-col md:h-full relative ${isExpanded ? 'md:w-full lg:w-full bg-gray-50 dark:bg-[#18191A]' : 'md:w-[50%] lg:w-[48%] bg-gray-50 dark:bg-[#18191A]'}`}>
           <div className="flex flex-col h-full w-full">
-            <div className="p-4 border-b border-gray-200 dark:border-[#3A3B3C] shrink-0 bg-white dark:bg-[#242526] flex items-center justify-between">
+            {/* DESKTOP HEADER (HIDDEN ON MOBILE) */}
+            <div className="hidden md:flex p-4 border-b border-gray-200 dark:border-[#3A3B3C] shrink-0 bg-white dark:bg-[#242526] items-center justify-between">
               <h2 className="font-bold text-[18px] text-gray-900 dark:text-white">{t("postModal.title") || "Komentar"}</h2>
               <div className="flex items-center gap-2">
                 <button onClick={() => setIsExpanded(!isExpanded)} aria-label="Expand" className="w-8 h-8 rounded-full bg-gray-200 dark:bg-[#3A3B3C] hover:bg-gray-300 dark:hover:bg-[#4E4F50] text-gray-700 dark:text-[#E4E6EB] flex items-center justify-center transition-colors">
@@ -900,6 +962,15 @@ export default function PostDetailModal({ isOpen, onClose, post, currentUser, ta
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 pb-24 custom-scrollbar flex flex-col gap-4">
+              {/* MOBILE ONLY: POST COMPONENT INTEGRATED AT TOP */}
+              <div className="md:hidden -mx-4 -mt-4 mb-1 bg-[#F3F2EF] dark:bg-[#18191A] border-b border-gray-200 dark:border-[#3E4042]">
+                <PostCard post={post} currentUser={currentUser} hideFooter={true} disableClicks={true} showAllReactions={true} />
+              </div>
+
+              {/* MOBILE ONLY: COMMENTS SECTION LABEL */}
+              <div className="md:hidden font-bold text-[16px] text-gray-900 dark:text-white px-0 pt-1">
+                {t("postModal.title") || "Komentar"}
+              </div>
               {isLoadingComments ? (
                 <>
                   {["w-3/4", "w-1/2", "w-2/3", "w-4/5"].map((w, i) => (

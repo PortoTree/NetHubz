@@ -1017,6 +1017,8 @@
     },
     "postModal": {
         "title": "Comments",
+        "postHeader": "Post",
+        "close": "Close",
         "noComments": "No comments yet. Be the first!",
         "like": "Like",
         "reply": "Reply",
