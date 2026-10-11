@@ -431,6 +431,7 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
   const [activeStatus, setActiveStatus] = useState("ALL");
   const [showFilter, setShowFilter] = useState(false);
   const [showCreatorsTooltip, setShowCreatorsTooltip] = useState(false);
+  const [isCreatorsExpanded, setIsCreatorsExpanded] = useState(false);
   const [activeCategory, setActiveCategory] = useState("ALL");
   const [showStickyCategories, setShowStickyCategories] = useState(false);
   const [isScrolledPastHero, setIsScrolledPastHero] = useState(false);
@@ -644,50 +645,12 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
   const searchedUsers = useMemo(() => {
     if (!search.trim()) return [];
     const q = search.toLowerCase();
-    const userMap = new Map<string, {
-      username: string;
-      displayName: string;
-      avatarUrl: string;
-      totalProjects: number;
-      totalLikes: number;
-      totalComments: number;
-      isPopular: boolean;
-    }>();
-    projects.forEach((p) => {
-      if (!p.user?.username) return;
-      const username = p.user.username;
-      const displayName = p.user.profile?.displayName || username;
-      const avatarUrl = p.user.profile?.avatarUrl || "";
-      const matches =
-        username.toLowerCase().includes(q) ||
-        displayName.toLowerCase().includes(q);
-      if (!matches) return;
-      const likes = p._count?.likes || 0;
-      const comments = p._count?.comments || 0;
-      if (userMap.has(username)) {
-        const existing = userMap.get(username)!;
-        existing.totalProjects += 1;
-        existing.totalLikes += likes;
-        existing.totalComments += comments;
-      } else {
-        userMap.set(username, {
-          username,
-          displayName,
-          avatarUrl,
-          totalProjects: 1,
-          totalLikes: likes,
-          totalComments: comments,
-          isPopular: false,
-        });
-      }
-    });
-    // Cross-reference with activeCreators to tag popular users
-    const popularSet = new Set(activeCreators.filter((_, i) => i < 3).map(c => c.username));
-    return Array.from(userMap.values()).map(u => ({
-      ...u,
-      isPopular: popularSet.has(u.username),
-    }));
-  }, [search, projects, activeCreators]);
+    return activeCreators.filter(
+      (u) =>
+        u.username.toLowerCase().includes(q) ||
+        u.displayName.toLowerCase().includes(q)
+    );
+  }, [search, activeCreators]);
 
   const statusBadgeClass = (status: string) =>
     "shrink-0 px-2.5 py-1 rounded-md text-[11px] font-semibold " +
@@ -927,12 +890,12 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                     </p>
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-1 max-h-[320px] overflow-y-auto sidebar-scrollbar pr-0.5">
+                  <div className="flex flex-col gap-1.5 max-h-[380px] overflow-y-auto sidebar-scrollbar pr-0.5 overscroll-contain">
                     {searchedUsers.map((user) => (
                       <Link
                         key={user.username + "-m-search"}
                         href={`/${locale}/project/${user.username}`}
-                        className="relative flex items-center gap-3 p-2 rounded-xl border border-transparent transition-all group/creator hover:bg-gray-100 dark:hover:bg-[#3A3B3C]/50 overflow-hidden"
+                        className="relative flex items-center gap-3 p-2.5 rounded-xl border border-transparent transition-all group/creator hover:bg-gray-100 dark:hover:bg-[#3A3B3C]/50 shrink-0 min-h-[58px]"
                       >
                         <div className="relative shrink-0 flex items-center">
                           {user.avatarUrl ? (
@@ -940,15 +903,15 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                               src={user.avatarUrl}
                               alt={user.displayName}
                               onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/default-avatar.svg"; }}
-                              className="w-10 h-10 rounded-full object-cover relative z-10"
+                              className="w-10 h-10 rounded-full object-cover relative z-10 shrink-0"
                             />
                           ) : (
-                            <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-[#3A3B3C] flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold text-[15px] relative z-10">
+                            <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-[#3A3B3C] flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold text-[15px] relative z-10 shrink-0">
                               {user.displayName[0]?.toUpperCase()}
                             </div>
                           )}
                         </div>
-                        <div className="flex flex-col min-w-0 flex-grow relative z-10">
+                        <div className="flex flex-col justify-center min-w-0 flex-grow relative z-10">
                           <div className="flex items-center w-full">
                             <span className="text-[13px] font-bold text-gray-800 dark:text-[#E4E6EB] group-hover/creator:text-purple-600 dark:group-hover/creator:text-purple-400 truncate leading-tight transition-colors">
                               {tHub("userProjects", { name: user.displayName })}
@@ -957,11 +920,11 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                               <img
                                 src="/red-elektro.gif"
                                 alt="Popular Electro"
-                                className="h-[25px] w-auto shrink-0 pointer-events-none mix-blend-screen ml-1 -translate-y-1"
+                                className="h-[22px] w-auto shrink-0 pointer-events-none mix-blend-screen ml-1 -translate-y-0.5"
                               />
                             )}
                           </div>
-                          <div className="flex items-center justify-between mt-0.5 w-full">
+                          <div className="flex items-center justify-between mt-1 w-full">
                             <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 truncate pr-2">
                               @{user.username}
                             </span>
@@ -1039,12 +1002,12 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                       </ul>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-1 max-h-[320px] overflow-y-auto sidebar-scrollbar pr-0.5">
-                    {activeCreators.map((creator) => (
+                  <div className="flex flex-col gap-1.5 transition-all">
+                    {(isCreatorsExpanded ? activeCreators : activeCreators.slice(0, 4)).map((creator) => (
                       <Link
                         key={creator.username + "-m-creator"}
                         href={`/${locale}/project/${creator.username}`}
-                        className="relative flex items-center gap-3 p-2 rounded-xl border border-transparent transition-all group/creator hover:bg-gray-100 dark:hover:bg-[#3A3B3C]/50 overflow-hidden"
+                        className="relative flex items-center gap-3 p-2.5 rounded-xl border border-transparent transition-all group/creator hover:bg-gray-100 dark:hover:bg-[#3A3B3C]/50 shrink-0 min-h-[58px]"
                       >
                         <div className="relative shrink-0 flex items-center">
                           {creator.avatarUrl ? (
@@ -1052,15 +1015,15 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                               src={creator.avatarUrl}
                               alt={creator.displayName}
                               onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/default-avatar.svg"; }}
-                              className="w-10 h-10 rounded-full object-cover relative z-10"
+                              className="w-10 h-10 rounded-full object-cover relative z-10 shrink-0"
                             />
                           ) : (
-                            <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-[#3A3B3C] flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold text-[15px] relative z-10">
+                            <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-[#3A3B3C] flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold text-[15px] relative z-10 shrink-0">
                               {creator.displayName[0]?.toUpperCase()}
                             </div>
                           )}
                         </div>
-                        <div className="flex flex-col min-w-0 flex-grow relative z-10">
+                        <div className="flex flex-col justify-center min-w-0 flex-grow relative z-10">
                           <div className="flex items-center w-full">
                             <span className="text-[13px] font-bold text-gray-800 dark:text-[#E4E6EB] group-hover/creator:text-purple-600 dark:group-hover/creator:text-purple-400 truncate leading-tight transition-colors">
                               {tHub("userProjects", { name: creator.displayName })}
@@ -1069,11 +1032,11 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                               <img
                                 src="/red-elektro.gif"
                                 alt="Popular Electro"
-                                className="h-[25px] w-auto shrink-0 pointer-events-none mix-blend-screen ml-1 -translate-y-1"
+                                className="h-[22px] w-auto shrink-0 pointer-events-none mix-blend-screen ml-1 -translate-y-0.5"
                               />
                             )}
                           </div>
-                          <div className="flex items-center justify-between mt-0.5 w-full">
+                          <div className="flex items-center justify-between mt-1 w-full">
                             <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 truncate pr-2">
                               @{creator.username}
                             </span>
@@ -1096,6 +1059,28 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                       </Link>
                     ))}
                   </div>
+
+                  {activeCreators.length > 4 && (
+                    <button
+                      type="button"
+                      onClick={() => setIsCreatorsExpanded((prev) => !prev)}
+                      className="w-full mt-1.5 py-1.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-[12px] font-bold transition-all bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-[#3A3B3C]/70 dark:hover:bg-[#3A3B3C] dark:text-[#E4E6EB] border border-gray-200/50 dark:border-[#4E4F50]/50 shadow-xs cursor-pointer active:scale-[0.99]"
+                    >
+                      <span>
+                        {isCreatorsExpanded ? tHub("showLess") : tHub("seeAll")}
+                      </span>
+                      <svg
+                        className={`w-3.5 h-3.5 transition-transform duration-200 text-gray-500 dark:text-gray-400 ${
+                          isCreatorsExpanded ? "rotate-180" : ""
+                        }`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               )
             )}
@@ -1129,7 +1114,7 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
         </div>
 
         {/* RIGHT: Search & Filter Sidebar */}
-        <div className="hidden lg:flex w-[300px] shrink-0 flex-col self-start sticky top-16 z-20 max-h-[calc(100vh-4.5rem)] pb-12">
+        <div className="hidden lg:flex w-[300px] shrink-0 flex-col self-start sticky top-16 z-20 pb-12">
           <div className="relative shrink-0 pb-4 z-[60]">
             <div className="flex items-center justify-between mb-2">
               <p className="text-[13px] font-bold text-gray-500 dark:text-[#B0B3B8] uppercase tracking-wide">
@@ -1264,7 +1249,7 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
           </div>
 
           {/* ACTIVE CREATORS / SEARCH RESULTS LISTS */}
-          <div className="flex-1 overflow-y-auto sidebar-scrollbar pr-1 relative">
+          <div className="flex-1 pr-1 relative">
             {search.trim() ? (
               /* ---- Search mode: show matching users ---- */
               <div className="flex flex-col gap-1">
@@ -1284,7 +1269,7 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                       <Link
                         key={user.username}
                         href={`/${locale}/project/${user.username}`}
-                        className="relative flex items-center gap-3 p-2 rounded-xl border border-transparent transition-all group/creator hover:bg-white dark:hover:bg-[#242526] hover:shadow-sm hover:border-gray-200 dark:hover:border-[#3A3B3C] overflow-hidden"
+                        className="relative flex items-center gap-3 p-2 rounded-xl border border-transparent transition-all group/creator hover:bg-white dark:hover:bg-[#242526] hover:shadow-sm hover:border-gray-200 dark:hover:border-[#3A3B3C] overflow-hidden shrink-0"
                       >
                         <div className="relative shrink-0 flex items-center">
                           {user.avatarUrl ? (
@@ -1292,15 +1277,15 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                               src={user.avatarUrl}
                               alt={user.displayName}
                               onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/default-avatar.svg"; }}
-                              className="w-10 h-10 rounded-full object-cover relative z-10"
+                              className="w-10 h-10 rounded-full object-cover relative z-10 shrink-0"
                             />
                           ) : (
-                            <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-[#3A3B3C] flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold text-[15px] relative z-10">
+                            <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-[#3A3B3C] flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold text-[15px] relative z-10 shrink-0">
                               {user.displayName[0]?.toUpperCase()}
                             </div>
                           )}
                         </div>
-                        <div className="flex flex-col min-w-0 flex-grow relative z-10">
+                        <div className="flex flex-col justify-center min-w-0 flex-grow relative z-10">
                           <div className="flex items-center w-full">
                             <span className="text-[13px] font-bold text-gray-800 dark:text-[#E4E6EB] group-hover/creator:text-purple-600 dark:group-hover/creator:text-purple-400 truncate leading-tight transition-colors">
                               {tHub("userProjects", { name: user.displayName })}
@@ -1309,11 +1294,11 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                               <img
                                 src="/red-elektro.gif"
                                 alt="Popular Electro"
-                                className="h-[25px] w-auto shrink-0 pointer-events-none mix-blend-screen ml-1 -translate-y-1"
+                                className="h-[22px] w-auto shrink-0 pointer-events-none mix-blend-screen ml-1 -translate-y-0.5"
                               />
                             )}
                           </div>
-                          <div className="flex items-center justify-between mt-0.5 w-full">
+                          <div className="flex items-center justify-between mt-1 w-full">
                             <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 truncate pr-2">
                               @{user.username}
                             </span>
@@ -1346,7 +1331,7 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                     <Link
                       key={creator.username}
                       href={`/${locale}/project/${creator.username}`}
-                      className="relative flex items-center gap-3 p-2 rounded-xl border border-transparent transition-all group/creator hover:bg-white dark:hover:bg-[#242526] hover:shadow-sm hover:border-gray-200 dark:hover:border-[#3A3B3C] overflow-hidden"
+                      className="relative flex items-center gap-3 p-2 rounded-xl border border-transparent transition-all group/creator hover:bg-white dark:hover:bg-[#242526] hover:shadow-sm hover:border-gray-200 dark:hover:border-[#3A3B3C] overflow-hidden shrink-0"
                     >
                       <div className="relative shrink-0 flex items-center">
                         {creator.avatarUrl ? (
@@ -1354,15 +1339,15 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                             src={creator.avatarUrl}
                             alt={creator.displayName}
                             onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/default-avatar.svg"; }}
-                            className="w-10 h-10 rounded-full object-cover relative z-10"
+                            className="w-10 h-10 rounded-full object-cover relative z-10 shrink-0"
                           />
                         ) : (
-                          <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-[#3A3B3C] flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold text-[15px] relative z-10">
+                          <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-[#3A3B3C] flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold text-[15px] relative z-10 shrink-0">
                             {creator.displayName[0]?.toUpperCase()}
                           </div>
                         )}
                       </div>
-                      <div className="flex flex-col min-w-0 flex-grow relative z-10">
+                      <div className="flex flex-col justify-center min-w-0 flex-grow relative z-10">
                         <div className="flex items-center w-full">
                           <span className="text-[13px] font-bold text-gray-800 dark:text-[#E4E6EB] group-hover/creator:text-purple-600 dark:group-hover/creator:text-purple-400 truncate leading-tight transition-colors">
                             {tHub("userProjects", { name: creator.displayName })}
@@ -1371,11 +1356,11 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                             <img
                               src="/red-elektro.gif"
                               alt="Popular Electro"
-                              className="h-[25px] w-auto shrink-0 pointer-events-none mix-blend-screen ml-1 -translate-y-1"
+                              className="h-[22px] w-auto shrink-0 pointer-events-none mix-blend-screen ml-1 -translate-y-0.5"
                             />
                           )}
                         </div>
-                        <div className="flex items-center justify-between mt-0.5 w-full">
+                        <div className="flex items-center justify-between mt-1 w-full">
                           <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 truncate pr-2">
                             @{creator.username}
                           </span>

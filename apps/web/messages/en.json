@@ -1013,7 +1013,9 @@
         "noResults": "No projects match your search.",
         "userProjects": "{name}\u0027s Projects",
         "searchResultsTitle": "Search Results",
-        "searchNoUser": "The user you\u0027re looking for may not have any projects here. Please double-check the username or display name you entered."
+        "searchNoUser": "The user you\u0027re looking for may not have any projects here. Please double-check the username or display name you entered.",
+        "seeAll": "See All",
+        "showLess": "Show Less"
     },
     "postModal": {
         "title": "Comments",

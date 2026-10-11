@@ -1019,7 +1019,9 @@
         "noResults": "Tidak ada project yang cocok.",
         "userProjects": "Project {name}",
         "searchResultsTitle": "Hasil Pencarian",
-        "searchNoUser": "Pengguna yang anda cari mungkin tidak memiliki project disini, pastikan username/display name yang anda isi sudah tepat."
+        "searchNoUser": "Pengguna yang anda cari mungkin tidak memiliki project disini, pastikan username/display name yang anda isi sudah tepat.",
+        "seeAll": "Lihat Semua",
+        "showLess": "Lebih Sedikit"
     },
     "postModal": {
         "title": "Komentar",
