@@ -706,35 +706,6 @@ export default function Navbar({
             {/* Dropdown Profile Panel */}
             {isDropdownOpen && (
               <div className="absolute right-0 mt-3 w-[260px] sm:w-[340px] bg-white dark:bg-[#242526] rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.15)] border border-gray-200 dark:border-[#3E4042] p-3 sm:p-4 z-[10200]">
-                <div className="bg-[#F2F2F2] dark:bg-[#3A3B3C] rounded-xl p-2 sm:p-3 flex items-center gap-3 mb-2 hover:bg-[#E4E6EB] dark:hover:bg-[#4E4F50] cursor-pointer transition-colors shadow-sm border border-gray-100 dark:border-[#3E4042]"
-                  onClick={() => {
-                    setIsDropdownOpen(false);
-                    router.push(`/${locale}/p/${currentUser.username}/${currentUser.id}`);
-                  }}
-                >
-                  <div className="w-[36px] h-[36px] sm:w-[40px] sm:h-[40px] rounded-full flex items-center justify-center overflow-hidden shrink-0 border border-emerald-600 dark:border-emerald-400">
-                    {isProfileLoading ? (
-                      <div className="w-full h-full bg-gray-300 dark:bg-gray-700 animate-pulse rounded-full" />
-                    ) : (
-                      <img
-                        src={navAvatar ? getOptimizedUrl(navAvatar, "avatar") : "/default-avatar.svg"}
-                        alt="Profile"
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="font-bold text-[14px] sm:text-[16px] text-black dark:text-[#E4E6EB] leading-tight truncate">
-                      {navDisplayName || currentUser.displayName || currentUser.username}
-                    </h3>
-                    <p className="text-[12px] sm:text-[13px] text-gray-500 dark:text-[#B0B3B8] truncate">
-                      @{currentUser.username}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="w-full h-[1px] bg-gray-200 dark:bg-[#3A3B3C] my-3"></div>
-
                 <div className="space-y-1 sm:space-y-2">
                   <button className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] transition-colors group/item">
                     <div className="flex items-center gap-2 sm:gap-3">
@@ -927,36 +898,6 @@ export default function Navbar({
                       {isDarkMode
                         ? t("dropdown.lightMode")
                         : t("dropdown.darkMode")}
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      localStorage.removeItem("token");
-                      document.cookie =
-                        "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-                      window.location.href = `/login`;
-                    }}
-                    className="w-full flex items-center gap-2 sm:gap-3 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] transition-colors"
-                  >
-                    <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#E4E6EB] dark:bg-[#3A3B3C] flex items-center justify-center shrink-0 overflow-hidden">
-                      <svg
-                        className="w-[18px] h-[18px] sm:w-[20px] sm:h-[20px] text-black dark:text-[#E4E6EB] ml-1"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2.2}
-                          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                        />
-                      </svg>
-                    </div>
-                    <span className="font-semibold text-[13px] sm:text-[15px] text-black dark:text-[#E4E6EB]">
-                      {t("dropdown.logout")}
                     </span>
                   </button>
                 </div>
