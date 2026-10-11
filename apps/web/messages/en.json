@@ -1150,5 +1150,33 @@
         "following": "Following",
         "viewProfile": "View Profile",
         "close": "Close"
+    },
+    "shareModal": {
+        "titlePost": "Share Post",
+        "titleProject": "Share Project",
+        "subtitleDesktop": "Send to NetHubz friends or social media",
+        "hintMobile": "Swipe down to close",
+        "friendsTitle": "Send to NetHubz Friends",
+        "friendsCount": "{count} friends",
+        "searchPlaceholder": "Search friends...",
+        "noMatchingFriends": "No matching friends found",
+        "noFriends": "No connected friends yet.",
+        "loadingFriends": "Loading friends list...",
+        "send": "Send",
+        "sent": "Sent",
+        "socialTitle": "Share to Social Media",
+        "copyTitle": "Copy Link",
+        "copy": "Copy",
+        "copied": "Copied!",
+        "toastCopied": "Link copied successfully!",
+        "toastCopyFailed": "Failed to copy link",
+        "toastSent": "Successfully sent to {name}!",
+        "close": "Close",
+        "postBadge": "Post",
+        "projectBadge": "Project",
+        "defaultFallbackPost": "Check out this post on NetHubz",
+        "defaultFallbackProject": "Check out this project on NetHubz",
+        "other": "More",
+        "toastInstagram": "Link copied! Open Instagram to share."
     }
 }

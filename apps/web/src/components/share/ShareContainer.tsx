@@ -1,34 +1,36 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useShareModal } from "@/contexts/ShareContext";
 import ShareModalDesktop from "./ShareModalDesktop";
 import ShareSheetMobile from "./ShareSheetMobile";
 
 export default function ShareContainer() {
   const { isOpen, shareData, closeShareModal } = useShareModal();
+  const [isMobile, setIsMobile] = useState<boolean | null>(null);
 
-  if (!isOpen || !shareData) return null;
+  useEffect(() => {
+    const updateSize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    updateSize();
+    window.addEventListener("resize", updateSize);
+    return () => window.removeEventListener("resize", updateSize);
+  }, []);
 
-  return (
-    <>
-      {/* Mobile (<768px): Native Slide Bottom Sheet */}
-      <div className="block md:hidden">
-        <ShareSheetMobile
-          isOpen={isOpen}
-          shareData={shareData}
-          onClose={closeShareModal}
-        />
-      </div>
+  if (!isOpen || !shareData || isMobile === null) return null;
 
-      {/* Desktop (>=768px): Centered Modal Dialog */}
-      <div className="hidden md:block">
-        <ShareModalDesktop
-          isOpen={isOpen}
-          shareData={shareData}
-          onClose={closeShareModal}
-        />
-      </div>
-    </>
+  return isMobile ? (
+    <ShareSheetMobile
+      isOpen={isOpen}
+      shareData={shareData}
+      onClose={closeShareModal}
+    />
+  ) : (
+    <ShareModalDesktop
+      isOpen={isOpen}
+      shareData={shareData}
+      onClose={closeShareModal}
+    />
   );
 }

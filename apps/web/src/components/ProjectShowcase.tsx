@@ -12,6 +12,7 @@ import { checkInteractionState, toggleLike, incrementShareCount, toggleSave } fr
 import toast from "react-hot-toast";
 import { interactionsCache } from "@/utils/cache";
 import Image from "next/image";
+import { useShareModal } from "@/contexts/ShareContext";
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import NProgress from "nprogress";
@@ -19,6 +20,7 @@ import NProgress from "nprogress";
 
 const ShowcaseCard = ({ p, locale, t, tHub, CATEGORY_COLORS, getCategoryBadgeClasses, statusBadgeClass, statusKey }: any) => {
   const router = useRouter();
+  const { openShareModal } = useShareModal();
   const cover = p.coverUrls?.[0] || p.mediaUrls?.[0];
   const username = p.user?.username || "Unknown";
   const displayName = p.user?.profile?.displayName || username;
@@ -203,27 +205,20 @@ const ShowcaseCard = ({ p, locale, t, tHub, CATEGORY_COLORS, getCategoryBadgeCla
     }
   };
 
-  const handleShare = async (e: React.MouseEvent) => {
+  const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const url = `${window.location.origin}/${locale}/project/${username}/${p.id}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: p.title,
-          text: p.description || p.title,
-          url: url,
-        });
-        if (user) {
-          await incrementShareCount("project", p.id);
-        }
-      } catch (err) {}
-    } else {
-      navigator.clipboard.writeText(url);
-      alert(tHub("linkCopied") || "Tautan disalin ke clipboard!");
-      if (user) {
-        await incrementShareCount("project", p.id);
-      }
-    }
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const url = `${origin}/${locale}/project/${username}/${p.id}`;
+    openShareModal({
+      id: p.id,
+      type: "PROJECT",
+      title: p.title || undefined,
+      text: p.description || undefined,
+      url,
+      authorName: displayName,
+      authorUsername: username,
+      authorAvatar: avatarUrl,
+    });
   };
 
   return (

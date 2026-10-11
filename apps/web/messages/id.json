@@ -1156,5 +1156,33 @@
         "following": "Mengikuti",
         "viewProfile": "Lihat Profil",
         "close": "Tutup"
+    },
+    "shareModal": {
+        "titlePost": "Bagikan Postingan",
+        "titleProject": "Bagikan Project",
+        "subtitleDesktop": "Kirim ke teman NetHubz atau ke media sosial",
+        "hintMobile": "Geser ke bawah untuk menutup",
+        "friendsTitle": "Kirim ke Teman NetHubz",
+        "friendsCount": "{count} teman",
+        "searchPlaceholder": "Cari teman...",
+        "noMatchingFriends": "Tidak ada teman yang cocok",
+        "noFriends": "Belum ada teman terhubung.",
+        "loadingFriends": "Memuat daftar teman...",
+        "send": "Kirim",
+        "sent": "Terkirim",
+        "socialTitle": "Bagikan ke Media Sosial",
+        "copyTitle": "Salin Tautan",
+        "copy": "Salin",
+        "copied": "Tersalin!",
+        "toastCopied": "Tautan berhasil disalin!",
+        "toastCopyFailed": "Gagal menyalin tautan",
+        "toastSent": "Berhasil dikirim ke {name}!",
+        "close": "Tutup",
+        "postBadge": "Postingan",
+        "projectBadge": "Project",
+        "defaultFallbackPost": "Lihat postingan ini di NetHubz",
+        "defaultFallbackProject": "Lihat project ini di NetHubz",
+        "other": "Lainnya",
+        "toastInstagram": "Tautan disalin! Buka Instagram untuk membagikan."
     }
 }

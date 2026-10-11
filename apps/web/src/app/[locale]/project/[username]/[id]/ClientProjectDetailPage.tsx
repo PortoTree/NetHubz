@@ -25,6 +25,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import { getMentionSuggestion } from "@/utils/mentionSuggestion";
 import toast from "react-hot-toast";
 import SaveToFolderModal from "@/components/SaveToFolderModal";
+import { useShareModal } from "@/contexts/ShareContext";
 
 
 // ─── Gallery ─────────────────────────────────────────────────────────────────
@@ -114,6 +115,7 @@ export default function ClientProjectDetailPage({
   const t = useTranslations("project");
   const tGlobal = useTranslations();
   const router = useRouter();
+  const { openShareModal } = useShareModal();
 
   const [project, setProject] = useState<any>(initialProject);
   const [isLoading, setIsLoading] = useState(false);
@@ -337,10 +339,17 @@ export default function ClientProjectDetailPage({
     setIsLikeLoading(false);
   };
 
-  const handleShare = async () => {
-    const url = window.location.href;
-    if (navigator.share) { try { await navigator.share({ title: project?.title, url }); } catch (e) {} }
-    else { navigator.clipboard.writeText(url); alert("Link disalin!"); }
+  const handleShare = () => {
+    openShareModal({
+      id,
+      type: "PROJECT",
+      title: project?.title || undefined,
+      text: project?.description || undefined,
+      url: typeof window !== "undefined" ? window.location.href : "",
+      authorName: project?.user?.profile?.displayName || project?.user?.username,
+      authorUsername: project?.user?.username,
+      authorAvatar: project?.user?.profile?.avatarUrl,
+    });
   };
 
   const handleSave = async (e: React.MouseEvent) => {

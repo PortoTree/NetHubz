@@ -12,6 +12,7 @@ import { ReactionSummaryPopup } from "./ReactionSummaryPopup";
 import { checkInteractionState, toggleLike } from "@/app/actions/interactions";
 import { interactionsCache } from "@/utils/cache";
 import Image from "next/image";
+import { useShareModal } from "@/contexts/ShareContext";
 
 interface ProjectCardProps {
   project: any;
@@ -55,6 +56,7 @@ export default function ProjectCard({
   disableAutoFetch = false,
 }: ProjectCardProps) {
   const router = useRouter();
+  const { openShareModal } = useShareModal();
   const tProject = useTranslations("project");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -238,17 +240,21 @@ export default function ProjectCard({
     }
   };
 
-  const handleShare = async (e: React.MouseEvent) => {
+  const handleShare = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const url = `${window.location.origin}/${locale}/project/${username}/${p.id}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: p.title, url });
-      } catch (err) {}
-    } else {
-      navigator.clipboard.writeText(url);
-    }
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const url = `${origin}/${locale}/project/${username}/${p.id}`;
+    openShareModal({
+      id: p.id,
+      type: "PROJECT",
+      title: p.title || undefined,
+      text: p.description || undefined,
+      url,
+      authorName: p.user?.profile?.displayName || p.user?.username || username,
+      authorUsername: p.user?.username || username,
+      authorAvatar: p.user?.profile?.avatarUrl,
+    });
   };
 
   const coverUrls = (p.coverUrls && p.coverUrls.length > 0) ? p.coverUrls : (p.mediaUrls && p.mediaUrls.length > 0 ? p.mediaUrls : []);

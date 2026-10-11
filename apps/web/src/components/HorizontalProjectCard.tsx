@@ -14,6 +14,7 @@ import SaveToFolderModal from "./SaveToFolderModal";
 import { ReactionButton, ReactionType, REACTION_CONFIG } from "./ReactionButton";
 import { ReactionSummaryPopup } from "./ReactionSummaryPopup";
 import Image from "next/image";
+import { useShareModal } from "@/contexts/ShareContext";
 
 interface HorizontalProjectCardProps {
   project: any;
@@ -33,6 +34,7 @@ export default function HorizontalProjectCard({
   onDelete,
 }: HorizontalProjectCardProps) {
   const router = useRouter();
+  const { openShareModal } = useShareModal();
   const tProject = useTranslations("project");
   const tGlobal = useTranslations();
   const { currentUser } = useUser();
@@ -188,25 +190,22 @@ export default function HorizontalProjectCard({
     setIsSaveLoading(false);
   };
 
-  const handleShare = async (e: React.MouseEvent) => {
+  const handleShare = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    const url = `${window.location.origin}/${locale}/project/${projectOwner}/${p.id}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Project: ${p.title}`,
-          url
-        });
-
-      } catch (err) {
-        console.error("Error sharing", err);
-      }
-    } else {
-      navigator.clipboard.writeText(url);
-      alert(tProject("linkCopied") || "Tautan disalin ke papan klip!");
-
-    }
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const owner = p.user?.username || username;
+    const url = `${origin}/${locale}/project/${owner}/${p.id}`;
+    openShareModal({
+      id: p.id,
+      type: "PROJECT",
+      title: p.title || undefined,
+      text: p.description || undefined,
+      url,
+      authorName: p.user?.profile?.displayName || owner,
+      authorUsername: owner,
+      authorAvatar: p.user?.profile?.avatarUrl,
+    });
   };
 
   const coverUrls = (p.coverUrls && p.coverUrls.length > 0) ? p.coverUrls : (p.mediaUrls && p.mediaUrls.length > 0 ? p.mediaUrls : []);

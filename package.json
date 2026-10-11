@@ -10,7 +10,7 @@
     "dev:web": "npm run dev --prefix apps/web",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "postinstall": "npx prisma generate"
+    "postinstall": "npx prisma@5.21.0 generate"
   },
   "devDependencies": {
     "concurrently": "^9.2.4"

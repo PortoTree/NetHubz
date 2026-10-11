@@ -16,6 +16,7 @@ import Image from "next/image";
 import toast from "react-hot-toast";
 import SaveToFolderModal from "./SaveToFolderModal";
 import { useMiniProfile } from "@/contexts/MiniProfileContext";
+import { useShareModal } from "@/contexts/ShareContext";
 import { getProfileUrl } from "@/utils/profileActions";
 
 export function formatPostTime(timestamp: number | Date, t: any, locale: string) {
@@ -50,6 +51,7 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
   const locale = useLocale();
   const router = useRouter();
   const { openMiniProfile } = useMiniProfile();
+  const { openShareModal } = useShareModal();
 
   const handleUserClick = (user: any, e?: React.MouseEvent) => {
     if (onProfileClick) {
@@ -159,23 +161,22 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
     setIsSaveLoading(false);
   };
 
-  const handleShare = async () => {
-    const url = `${window.location.origin}/${locale}/p/${post.author?.username}/${post.authorId}?postId=${post.id}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `Post by ${post.author?.profile?.displayName || post.author?.username}`,
-          url
-        });
+  const handleShare = () => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const username = post.author?.username || "user";
+    const authorId = post.authorId || post.author?.id || username;
+    const url = `${origin}/${locale}/p/${username}/${authorId}?postId=${post.id}`;
 
-      } catch (err) {
-        console.error("Error sharing", err);
-      }
-    } else {
-      navigator.clipboard.writeText(url);
-      alert(t("feed.linkCopied") || "Tautan disalin ke papan klip!");
-
-    }
+    openShareModal({
+      id: post.id,
+      type: "POST",
+      title: post.title || undefined,
+      text: post.content || undefined,
+      url,
+      authorName: post.author?.profile?.displayName || post.author?.username,
+      authorUsername: post.author?.username,
+      authorAvatar: post.author?.profile?.avatarUrl,
+    });
   };
 
   useEffect(() => {
