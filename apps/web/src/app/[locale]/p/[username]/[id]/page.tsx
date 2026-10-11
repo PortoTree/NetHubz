@@ -945,66 +945,64 @@ function ProfilePageContent({
 
       {/* Cloned Sticky Navigation Bar */}
       <div 
-        className={`fixed top-[56px] left-0 right-0 z-[45] w-full transition-transform duration-300 pointer-events-none ${
-          showScrollToTabs ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
+        className={`fixed top-[56px] left-0 right-0 z-[45] w-full bg-white dark:bg-[#18191A] border-b border-gray-200 dark:border-white/10 shadow-sm py-2 transition-transform duration-300 ${
+          showScrollToTabs ? "translate-y-0 opacity-100 pointer-events-auto" : "-translate-y-full opacity-0 pointer-events-none"
         }`}
       >
-        <div className="max-w-[1100px] mx-auto px-4 md:px-8">
-          <div className="flex flex-col md:flex-row gap-6 px-2 md:px-6">
+        <div className="max-w-[1100px] mx-auto px-0 md:px-8">
+          <div className="flex flex-col md:flex-row gap-6 px-0 md:px-6">
             {/* Fake Left Sidebar Spacer */}
             <div className="hidden md:block w-full md:w-[320px] shrink-0 pointer-events-none"></div>
             
             {/* Cloned Nav Container inside Right Column */}
-            <div className="flex-1 min-w-0">
-              <div className="w-full max-w-[590px] mx-auto flex justify-center bg-white/30 dark:bg-[#18191A]/30 backdrop-blur-md py-2 border border-white/40 dark:border-white/10 shadow-lg rounded-b-2xl pointer-events-auto">
-                <ul className="flex gap-3 px-2">
-                  {[
-                    {
-                      id: 'posts', label: 'Post', gradientFrom: '#10B981', gradientTo: '#34D399',
-                      icon: <div className="w-6 h-6 bg-current" style={{ WebkitMask: "url(/navigasi/posting.svg) center/contain no-repeat", mask: "url(/navigasi/posting.svg) center/contain no-repeat" }} />
-                    },
-                    {
-                      id: 'gallery', label: 'Gallery', gradientFrom: '#56CCF2', gradientTo: '#2F80ED',
-                      icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 11V9a2 2 0 00-2-2H9a2 2 0 00-2 2v9a2 2 0 002 2h8a2 2 0 002-2v-2M15 4H5a2 2 0 00-2 2v10m12 0l-3-3m0 0l-3 3m3-3v6" /></svg>
-                    },
-                    {
-                      id: 'project', label: 'Project', gradientFrom: '#a955ff', gradientTo: '#ea51ff',
-                      icon: <div className="w-6 h-6 bg-current" style={{ WebkitMask: "url(/navigasi/project.svg) center/contain no-repeat", mask: "url(/navigasi/project-outline.svg) center/contain no-repeat" }} />
-                    }
-                  ].map(({ id, label, icon, gradientFrom, gradientTo }) => (
-                    <li
-                      key={id}
-                      onClick={() => {
-                        // Ganti tab dulu → tunggu DOM render ulang (2 frame) → 
-                        // baru hitung posisi anchor yang sudah final dan scroll kesana.
-                        // Ini menghilangkan "dua fase scroll" karena posisi target
-                        // sudah tidak akan berubah lagi setelah kita scroll.
-                        setActiveTab(id);
+            <div className="flex-1 min-w-0 flex justify-center">
+              <ul className="flex gap-3 px-2">
+                {[
+                  {
+                    id: 'posts', label: 'Post', gradientFrom: '#10B981', gradientTo: '#34D399',
+                    icon: <div className="w-6 h-6 bg-current" style={{ WebkitMask: "url(/navigasi/posting.svg) center/contain no-repeat", mask: "url(/navigasi/posting.svg) center/contain no-repeat" }} />
+                  },
+                  {
+                    id: 'gallery', label: 'Gallery', gradientFrom: '#56CCF2', gradientTo: '#2F80ED',
+                    icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 11V9a2 2 0 00-2-2H9a2 2 0 00-2 2v9a2 2 0 002 2h8a2 2 0 002-2v-2M15 4H5a2 2 0 00-2 2v10m12 0l-3-3m0 0l-3 3m3-3v6" /></svg>
+                  },
+                  {
+                    id: 'project', label: 'Project', gradientFrom: '#a955ff', gradientTo: '#ea51ff',
+                    icon: <div className="w-6 h-6 bg-current" style={{ WebkitMask: "url(/navigasi/project.svg) center/contain no-repeat", mask: "url(/navigasi/project-outline.svg) center/contain no-repeat" }} />
+                  }
+                ].map(({ id, label, icon, gradientFrom, gradientTo }) => (
+                  <li
+                    key={id}
+                    onClick={() => {
+                      // Ganti tab dulu → tunggu DOM render ulang (2 frame) → 
+                      // baru hitung posisi anchor yang sudah final dan scroll kesana.
+                      // Ini menghilangkan "dua fase scroll" karena posisi target
+                      // sudah tidak akan berubah lagi setelah kita scroll.
+                      setActiveTab(id);
+                      requestAnimationFrame(() => {
                         requestAnimationFrame(() => {
-                          requestAnimationFrame(() => {
-                            const anchorEl = document.getElementById('profile-tabs-anchor');
-                            if (anchorEl) {
-                              const rect = anchorEl.getBoundingClientRect();
-                              window.scrollTo({ top: window.scrollY + rect.top - 56, behavior: 'smooth' });
-                            }
-                          });
+                          const anchorEl = document.getElementById('profile-tabs-anchor');
+                          if (anchorEl) {
+                            const rect = anchorEl.getBoundingClientRect();
+                            window.scrollTo({ top: window.scrollY + rect.top - 56, behavior: 'smooth' });
+                          }
                         });
-                      }}
-                      style={{ '--gradient-from': gradientFrom, '--gradient-to': gradientTo } as React.CSSProperties}
-                      className={`relative h-[52px] bg-white dark:bg-[#3A3B3C] shadow-lg dark:shadow-black/40 rounded-full flex items-center justify-center transition-all duration-500 cursor-pointer overflow-hidden ${activeTab === id ? 'w-[140px] shadow-none' : 'w-[52px] group hover:w-[140px]'}`}
-                    >
-                      <span className={`absolute inset-0 rounded-full bg-[linear-gradient(45deg,var(--gradient-from),var(--gradient-to))] transition-opacity duration-500 ${activeTab === id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}></span>
-                      <span className={`absolute top-[10px] inset-x-0 h-full rounded-full bg-[linear-gradient(45deg,var(--gradient-from),var(--gradient-to))] blur-[15px] -z-10 transition-opacity duration-500 ${activeTab === id ? 'opacity-50' : 'opacity-0 group-hover:opacity-50'}`}></span>
-                      <span className={`relative z-10 text-gray-500 dark:text-gray-300 transition-all duration-300 ${activeTab === id ? 'scale-0 w-0 overflow-hidden' : 'scale-100 group-hover:scale-0 group-hover:w-0 group-hover:overflow-hidden'}`}>
-                        {icon}
-                      </span>
-                      <span className={`absolute text-white uppercase tracking-wide text-sm font-bold transition-all duration-300 ${activeTab === id ? 'scale-100 opacity-100' : 'scale-0 opacity-0 group-hover:scale-100 group-hover:opacity-100'}`} style={{ transitionDelay: activeTab === id ? '0ms' : '100ms' }}>
-                        {label}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+                      });
+                    }}
+                    style={{ '--gradient-from': gradientFrom, '--gradient-to': gradientTo } as React.CSSProperties}
+                    className={`relative h-[52px] bg-white dark:bg-[#3A3B3C] shadow-lg dark:shadow-black/40 rounded-full flex items-center justify-center transition-all duration-500 cursor-pointer overflow-hidden ${activeTab === id ? 'w-[140px] shadow-none' : 'w-[52px] group hover:w-[140px]'}`}
+                  >
+                    <span className={`absolute inset-0 rounded-full bg-[linear-gradient(45deg,var(--gradient-from),var(--gradient-to))] transition-opacity duration-500 ${activeTab === id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}></span>
+                    <span className={`absolute top-[10px] inset-x-0 h-full rounded-full bg-[linear-gradient(45deg,var(--gradient-from),var(--gradient-to))] blur-[15px] -z-10 transition-opacity duration-500 ${activeTab === id ? 'opacity-50' : 'opacity-0 group-hover:opacity-50'}`}></span>
+                    <span className={`relative z-10 text-gray-500 dark:text-gray-300 transition-all duration-300 ${activeTab === id ? 'scale-0 w-0 overflow-hidden' : 'scale-100 group-hover:scale-0 group-hover:w-0 group-hover:overflow-hidden'}`}>
+                      {icon}
+                    </span>
+                    <span className={`absolute text-white uppercase tracking-wide text-sm font-bold transition-all duration-300 ${activeTab === id ? 'scale-100 opacity-100' : 'scale-0 opacity-0 group-hover:scale-100 group-hover:opacity-100'}`} style={{ transitionDelay: activeTab === id ? '0ms' : '100ms' }}>
+                      {label}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         </div>
