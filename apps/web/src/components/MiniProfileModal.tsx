@@ -9,7 +9,7 @@ import { getMiniProfileData } from "@/app/actions/profile";
 import { toggleFollow } from "@/app/actions/connections";
 import { useUser } from "@/contexts/UserContext";
 import { calculatePopoverPosition, shouldCloseOnScroll, RectLike } from "@/utils/popoverPosition";
-import { getProfileActions, calculateOptimisticFollow } from "@/utils/profileActions";
+import { getProfileActions, calculateOptimisticFollow, getProfileUrl } from "@/utils/profileActions";
 
 export interface MiniProfileTarget {
   id?: string;
@@ -248,7 +248,7 @@ export default function MiniProfileModal({
     onClose();
     const username = profileData.username;
     const id = profileData.id || username;
-    router.push(`/${locale}/p/${username}/${id}`);
+    router.push(getProfileUrl(username, id, locale));
   }, [profileData, onClose, locale, router]);
 
   if (!mounted || !isOpen || !profileData) return null;

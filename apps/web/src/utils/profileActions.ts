@@ -47,3 +47,14 @@ export function calculateOptimisticFollow(
     followersCount: Math.max(0, currentFollowersCount + delta),
   };
 }
+
+export function getProfileUrl(
+  username?: string | null,
+  id?: string | null,
+  locale: string = "id"
+): string {
+  const user = username || id || "";
+  const identifier = id || username || "";
+  return `/${locale}/p/${user}/${identifier}`;
+}
+

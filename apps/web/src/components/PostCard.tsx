@@ -16,6 +16,7 @@ import Image from "next/image";
 import toast from "react-hot-toast";
 import SaveToFolderModal from "./SaveToFolderModal";
 import { useMiniProfile } from "@/contexts/MiniProfileContext";
+import { getProfileUrl } from "@/utils/profileActions";
 
 export function formatPostTime(timestamp: number | Date, t: any, locale: string) {
   const ts = new Date(timestamp).getTime();
@@ -416,8 +417,11 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
                 </button>
                 <button
                   onClick={(e) => {
-                    handleUserClick(post.author, e);
+                    e.stopPropagation();
                     setActivePostMenu(false);
+                    const username = post.author?.username;
+                    const id = post.author?.id || post.authorId || username;
+                    router.push(getProfileUrl(username, id, locale));
                   }}
                   className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] transition-colors text-left text-black dark:text-[#E4E6EB] font-semibold text-[15px]"
                 >
