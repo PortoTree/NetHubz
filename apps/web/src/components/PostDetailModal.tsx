@@ -867,21 +867,21 @@ export default function PostDetailModal({ isOpen, onClose, post, currentUser, ta
   if (!isOpen || typeof document === "undefined") return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[100000] flex items-center justify-center p-2 md:p-4 bg-black/40 dark:bg-black/60 overscroll-contain" onWheel={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[100000] flex items-center justify-center p-0 md:p-4 bg-black/40 dark:bg-black/60 overscroll-contain" onWheel={e => e.stopPropagation()}>
 
-      <div className={`w-full ${isExpanded ? 'max-w-2xl' : 'max-w-4xl'} h-full h-[95vh] max-h-[95vh] bg-white dark:bg-[#242526] rounded-xl flex flex-col md:flex-row overflow-hidden shadow-2xl border border-gray-200 dark:border-[#3E4042] relative transition-all duration-300`} onClick={e => e.stopPropagation()}>
+      <div className={`w-full ${isExpanded ? 'md:max-w-2xl' : 'md:max-w-4xl'} h-full md:h-[95vh] md:max-h-[95vh] bg-white dark:bg-[#242526] rounded-none md:rounded-xl flex flex-col md:flex-row overflow-hidden shadow-none md:shadow-2xl border-0 md:border border-gray-200 dark:border-[#3E4042] relative transition-all duration-300`} onClick={e => e.stopPropagation()}>
 
         {/* LEFT COLUMN - POST CONTENT */}
         {!isExpanded && (
-          <div className="w-full md:w-[50%] lg:w-[52%] flex flex-col overflow-y-auto border-r border-gray-200 dark:border-[#3E4042] custom-scrollbar bg-[#F3F2EF] dark:bg-[#18191A]">
-            <div className="w-full shrink-0 min-h-full p-0 md:p-2 pb-16 md:pb-4">
+          <div className="w-full md:w-[50%] lg:w-[52%] flex flex-col overflow-y-auto border-b md:border-b-0 md:border-r border-gray-200 dark:border-[#3E4042] custom-scrollbar bg-[#F3F2EF] dark:bg-[#18191A] shrink-0 max-h-[45vh] md:max-h-none md:shrink">
+            <div className="w-full shrink-0 min-h-full p-0 md:p-2 pb-6 md:pb-4">
               <PostCard post={post} currentUser={currentUser} hideFooter={true} disableClicks={true} showAllReactions={true} />
             </div>
           </div>
         )}
 
         {/* RIGHT COLUMN - COMMENTS */}
-        <div className={`w-full flex flex-col h-full relative ${isExpanded ? 'md:w-full lg:w-full bg-gray-50 dark:bg-[#18191A]' : 'md:w-[50%] lg:w-[48%] bg-gray-50 dark:bg-[#18191A]'}`}>
+        <div className={`w-full flex-1 md:flex-initial min-h-0 flex flex-col md:h-full relative ${isExpanded ? 'md:w-full lg:w-full bg-gray-50 dark:bg-[#18191A]' : 'md:w-[50%] lg:w-[48%] bg-gray-50 dark:bg-[#18191A]'}`}>
           <div className="flex flex-col h-full w-full">
             <div className="p-4 border-b border-gray-200 dark:border-[#3A3B3C] shrink-0 bg-white dark:bg-[#242526] flex items-center justify-between">
               <h2 className="font-bold text-[18px] text-gray-900 dark:text-white">{t("postModal.title") || "Komentar"}</h2>
