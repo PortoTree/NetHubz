@@ -46,18 +46,13 @@ note: nanti akan ada postingan khusus only komunitas, apakah di kerjakan logikan
 - [ ] **Layout Responsif**: Menyesuaikan layout grid dari desktop ke versi kolom tunggal untuk *mobile*.
 - [ ] **Optimasi Komponen UX**: Memastikan ukuran modal, padding, dan tombol sesuai untuk navigasi layar sentuh.
 
-## Phase 3: Portofolio & Etalase
-Melengkapi profil pengguna dengan tempat unjuk karya.
-- [ ] **Database Gallery**: Logika untuk menyimpan dan menampilkan koleksi gambar/galeri user.
-- [ ] **Database Project**: Logika untuk menampilkan detail proyek-proyek profesional yang pernah dikerjakan.
-
-## Phase 4: Komunitas & Real-time
+## Phase 3: Komunitas & Real-time
 Skala yang lebih luas untuk interaksi dalam kelompok, butuh penanganan *socket* (real-time) yang stabil.
 - [ ] **Database Komunitas**: Sistem pembuatan Grup/Komunitas, hak akses (Admin/Member), dan profil grup.
 - [ ] **Postingan komunitas**: secara privasi ini khusus untuk komunitas, bukan untuk user ke user. jadi yang melihat hanya orang yang join komunitas, kecuali jika owner/admin komunitas tersebut membuat pengaturan privasi pada komunitas menjadi public.
 - [ ] **Live Real-time Chat & Group Chat**: Fitur pesan langsung antar user (DM) dan percakapan di dalam komunitas (Grup).
 
-## Phase 4.4: UI/UX Kosmetik Profil (Persiapan Gamification)
+## Phase 3.4: UI/UX Kosmetik Profil (Persiapan Gamification)
 Membangun infrastruktur UI/UX untuk kosmetik dan reward sebelum sistem logika level dijalankan.
 - [ ] **UI/UX Avatar Border & Animasi**: Menyiapkan komponen CSS/Tailwind untuk render border, avatar beranimasi, dan sampul animasi di komponen Profile, Navbar, dan Postingan.
 - [ ] **UI/UX Custom Theme Warna Profil**: Menyiapkan logic CSS variabel untuk memungkinkan user mengubah tema warna spesifik pada halaman profilnya.

@@ -105,6 +105,16 @@
         "explore": "Jelajahi",
         "profile": "Profil"
     },
+    "bottomNav": {
+        "search": "Pencarian",
+        "chat": "Obrolan",
+        "friends": "Teman",
+        "community": "Komunitas",
+        "yourPage": "Halaman kamu",
+        "saved": "Tersimpan",
+        "viewProfile": "Lihat profil",
+        "profile": "Profil"
+    },
     "sidebar": {
         "friends": "Teman",
         "memories": "Kenangan",

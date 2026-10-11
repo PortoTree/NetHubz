@@ -105,6 +105,16 @@
         "explore": "Explore",
         "profile": "Profile"
     },
+    "bottomNav": {
+        "search": "Search",
+        "chat": "Chat",
+        "friends": "Friends",
+        "community": "Community",
+        "yourPage": "Your page",
+        "saved": "Saved",
+        "viewProfile": "View profile",
+        "profile": "Profile"
+    },
     "sidebar": {
         "friends": "Friends",
         "memories": "Memories",
