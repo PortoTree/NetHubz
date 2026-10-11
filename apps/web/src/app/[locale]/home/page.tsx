@@ -11,6 +11,7 @@ import { getOptimizedUrl } from "@/utils/cloudinary";
 import { profileCache, connectionCache } from "@/utils/cache";
 import React from "react";
 import { useUser } from "@/contexts/UserContext";
+import { useMiniProfile } from "@/contexts/MiniProfileContext";
 
 import CreatePostModal from "@/components/CreatePostModal";
 import PostFeed from "@/components/PostFeed";
@@ -61,6 +62,7 @@ export default function Beranda() {
   const [isAccountSwitcherOpen, setIsAccountSwitcherOpen] = useState(false);
   
   const { currentUser, isProfileLoading } = useUser();
+  const { openMiniProfile } = useMiniProfile();
   const [isFriendSearchExpanded, setIsFriendSearchExpanded] = useState(false);
   const friendSearchRef = useRef<HTMLDivElement>(null);
   const [isGroupSearchExpanded, setIsGroupSearchExpanded] = useState(false);
@@ -847,117 +849,7 @@ export default function Beranda() {
 
               <PostFeed 
                 currentUser={currentUser} 
-                onProfileClick={(author: any) => {
-                  setSelectedProfile({
-                    id: author.id,
-                    username: author.username,
-                    name: author.profile?.displayName || author.username,
-                    role: null, // skeleton/privacy
-                    avatar: author.profile?.avatarUrl ? getOptimizedUrl(author.profile.avatarUrl, "avatar") : "/default-avatar.svg",
-                    cover: author.profile?.coverUrl ? getOptimizedUrl(author.profile.coverUrl, "cover") : undefined,
-                    bio: null, // skeleton/privacy
-                    location: null, // skeleton/privacy
-                    stats: null // skeleton
-                  });
-                  setIsProfileSidebarOpen(true);
-                  
-                  const cachedProf = profileCache.get(author.id);
-                  const cachedConn = connectionCache.get(author.id);
-                  
-                  if (cachedProf && cachedConn) {
-                      const p = cachedProf;
-                      const user = p.user;
-                      const conn = cachedConn;
-                      
-                      let relation = "none";
-                      if (conn.friendshipStatus === "ACCEPTED") relation = "friend";
-                      else if (conn.friendshipStatus === "PENDING") relation = "request";
-                      
-                      const friendsCount = ((user as any)._count?.friendshipsAsUser || 0) + ((user as any)._count?.friendshipsAsFriend || 0);
-                      const isVisible = (privacy?: string) => {
-                        if (currentUser && user.id === currentUser.id) return true;
-                        if (!privacy || privacy === "PUBLIC") return true;
-                        if (privacy === "PRIVATE") return false;
-                        if (privacy === "FRIENDS") return conn.friendshipStatus === "ACCEPTED";
-                        return true;
-                      };
-                      const showLoc = p.locationName && isVisible((user as any).profileSettings?.privacyLoc);
-                      const showProf = p.profession && isVisible((user as any).profileSettings?.privacyProf);
-                      
-                      setSelectedProfile((prev: any) => ({
-                        ...prev,
-                        name: p.displayName || user.username || prev?.name,
-                        bio: p.bio || prev?.bio,
-                        location: showLoc ? p.locationName : null,
-                        role: showProf ? p.profession : null,
-                        avatar: p.avatarUrl ? getOptimizedUrl(p.avatarUrl, "avatar") : prev?.avatar,
-                        cover: p.coverUrl ? getOptimizedUrl(p.coverUrl, "cover") : prev?.cover,
-                        relation: relation,
-                        isFollowing: conn.isFollowing,
-                        requestedBy: conn.friendshipRequestedBy,
-                        stats: {
-                          friends: friendsCount,
-                          followers: (user as any)._count?.followers || 0,
-                          posts: (user as any)._count?.posts || 0
-                        }
-                      }));
-                      return; // Skip fetching if we have cache
-                  }
-                  
-                  setIsProfileSidebarLoading(true);
-                  Promise.all([
-                    import("@/app/actions/profile").then(m => m.getProfile(author.id)),
-                    import("@/app/actions/connections").then(m => m.getConnectionStatus(currentUser?.id, author.id))
-                  ]).then(([res, conn]) => {
-                    if (res.success && res.profile) {
-                      profileCache.set(author.id, res.profile);
-                      connectionCache.set(author.id, conn);
-                      
-                      const p = res.profile;
-                      const user = p.user;
-                      
-                      let relation = "none";
-                      if (conn.friendshipStatus === "ACCEPTED") {
-                        relation = "friend";
-                      } else if (conn.friendshipStatus === "PENDING") {
-                        relation = "request";
-                      }
-                      
-                      const friendsCount = ((user as any)._count?.friendshipsAsUser || 0) + ((user as any)._count?.friendshipsAsFriend || 0);
-                      
-                      const isVisible = (privacy?: string) => {
-                        if (currentUser && user.id === currentUser.id) return true;
-                        if (!privacy || privacy === "PUBLIC") return true;
-                        if (privacy === "PRIVATE") return false;
-                        if (privacy === "FRIENDS") return conn.friendshipStatus === "ACCEPTED";
-                        return true;
-                      };
-                      
-                      const showLoc = p.locationName && isVisible((user as any).profileSettings?.privacyLoc);
-                      const showProf = p.profession && isVisible((user as any).profileSettings?.privacyProf);
-                      
-                      setSelectedProfile((prev: any) => ({
-                        ...prev,
-                        name: p.displayName || user.username || prev?.name,
-                        bio: p.bio || prev?.bio,
-                        location: showLoc ? p.locationName : null,
-                        role: showProf ? p.profession : null,
-                        avatar: p.avatarUrl ? getOptimizedUrl(p.avatarUrl, "avatar") : prev?.avatar,
-                        cover: p.coverUrl ? getOptimizedUrl(p.coverUrl, "cover") : prev?.cover,
-                        relation: relation,
-                        isFollowing: conn.isFollowing,
-                        requestedBy: conn.friendshipRequestedBy,
-                        stats: {
-                          friends: friendsCount,
-                          followers: (user as any)._count?.followers || 0,
-                          posts: (user as any)._count?.posts || 0
-                        }
-                      }));
-                    }
-                  }).finally(() => {
-                    setIsProfileSidebarLoading(false);
-                  });
-                }}
+                onProfileClick={(author: any, e?: any) => openMiniProfile(author, e)}
               />
               </div>
             )}
@@ -1348,117 +1240,7 @@ export default function Beranda() {
               {/* Post Feed Placeholder */}
               <PostFeed 
                 currentUser={currentUser} 
-                onProfileClick={(author: any) => {
-                  setSelectedProfile({
-                    id: author.id,
-                    username: author.username,
-                    name: author.profile?.displayName || author.username,
-                    role: null, // skeleton/privacy
-                    avatar: author.profile?.avatarUrl ? getOptimizedUrl(author.profile.avatarUrl, "avatar") : "/default-avatar.svg",
-                    cover: author.profile?.coverUrl ? getOptimizedUrl(author.profile.coverUrl, "cover") : undefined,
-                    bio: null, // skeleton/privacy
-                    location: null, // skeleton/privacy
-                    stats: null // skeleton
-                  });
-                  setIsProfileSidebarOpen(true);
-                  
-                  const cachedProf = profileCache.get(author.id);
-                  const cachedConn = connectionCache.get(author.id);
-                  
-                  if (cachedProf && cachedConn) {
-                      const p = cachedProf;
-                      const user = p.user;
-                      const conn = cachedConn;
-                      
-                      let relation = "none";
-                      if (conn.friendshipStatus === "ACCEPTED") relation = "friend";
-                      else if (conn.friendshipStatus === "PENDING") relation = "request";
-                      
-                      const friendsCount = ((user as any)._count?.friendshipsAsUser || 0) + ((user as any)._count?.friendshipsAsFriend || 0);
-                      const isVisible = (privacy?: string) => {
-                        if (currentUser && user.id === currentUser.id) return true;
-                        if (!privacy || privacy === "PUBLIC") return true;
-                        if (privacy === "PRIVATE") return false;
-                        if (privacy === "FRIENDS") return conn.friendshipStatus === "ACCEPTED";
-                        return true;
-                      };
-                      const showLoc = p.locationName && isVisible((user as any).profileSettings?.privacyLoc);
-                      const showProf = p.profession && isVisible((user as any).profileSettings?.privacyProf);
-                      
-                      setSelectedProfile((prev: any) => ({
-                        ...prev,
-                        name: p.displayName || user.username || prev?.name,
-                        bio: p.bio || prev?.bio,
-                        location: showLoc ? p.locationName : null,
-                        role: showProf ? p.profession : null,
-                        avatar: p.avatarUrl ? getOptimizedUrl(p.avatarUrl, "avatar") : prev?.avatar,
-                        cover: p.coverUrl ? getOptimizedUrl(p.coverUrl, "cover") : prev?.cover,
-                        relation: relation,
-                        isFollowing: conn.isFollowing,
-                        requestedBy: conn.friendshipRequestedBy,
-                        stats: {
-                          friends: friendsCount,
-                          followers: (user as any)._count?.followers || 0,
-                          posts: (user as any)._count?.posts || 0
-                        }
-                      }));
-                      return; // Skip fetching if we have cache
-                  }
-                  
-                  setIsProfileSidebarLoading(true);
-                  Promise.all([
-                    import("@/app/actions/profile").then(m => m.getProfile(author.id)),
-                    import("@/app/actions/connections").then(m => m.getConnectionStatus(currentUser?.id, author.id))
-                  ]).then(([res, conn]) => {
-                    if (res.success && res.profile) {
-                      profileCache.set(author.id, res.profile);
-                      connectionCache.set(author.id, conn);
-                      
-                      const p = res.profile;
-                      const user = p.user;
-                      
-                      let relation = "none";
-                      if (conn.friendshipStatus === "ACCEPTED") {
-                        relation = "friend";
-                      } else if (conn.friendshipStatus === "PENDING") {
-                        relation = "request";
-                      }
-                      
-                      const friendsCount = ((user as any)._count?.friendshipsAsUser || 0) + ((user as any)._count?.friendshipsAsFriend || 0);
-                      
-                      const isVisible = (privacy?: string) => {
-                        if (currentUser && user.id === currentUser.id) return true;
-                        if (!privacy || privacy === "PUBLIC") return true;
-                        if (privacy === "PRIVATE") return false;
-                        if (privacy === "FRIENDS") return conn.friendshipStatus === "ACCEPTED";
-                        return true;
-                      };
-                      
-                      const showLoc = p.locationName && isVisible((user as any).profileSettings?.privacyLoc);
-                      const showProf = p.profession && isVisible((user as any).profileSettings?.privacyProf);
-                      
-                      setSelectedProfile((prev: any) => ({
-                        ...prev,
-                        name: p.displayName || user.username || prev?.name,
-                        bio: p.bio || prev?.bio,
-                        location: showLoc ? p.locationName : null,
-                        role: showProf ? p.profession : null,
-                        avatar: p.avatarUrl ? getOptimizedUrl(p.avatarUrl, "avatar") : prev?.avatar,
-                        cover: p.coverUrl ? getOptimizedUrl(p.coverUrl, "cover") : prev?.cover,
-                        relation: relation,
-                        isFollowing: conn.isFollowing,
-                        requestedBy: conn.friendshipRequestedBy,
-                        stats: {
-                          friends: friendsCount,
-                          followers: (user as any)._count?.followers || 0,
-                          posts: (user as any)._count?.posts || 0
-                        }
-                      }));
-                    }
-                  }).finally(() => {
-                    setIsProfileSidebarLoading(false);
-                  });
-                }}
+                onProfileClick={(author: any, e?: any) => openMiniProfile(author, e)}
               />
             </div>
           </div>
@@ -1962,12 +1744,9 @@ export default function Beranda() {
           <div className="fixed inset-0 z-[9998] lg:hidden bg-black/50" onClick={() => setIsProductDetailOpen(false)} />
         )}
 
-        {/* Profile Right Sidebar — REDESIGNED */}
-        <div
-          className={`hidden lg:block fixed right-0 top-[56px] w-[340px] xl:w-[380px] overscroll-contain h-[calc(100vh-56px)] overflow-y-auto sidebar-scrollbar transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] transform ${isProfileSidebarOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"} z-40 bg-white dark:bg-[#1C1C1E] border-l border-gray-200/60 dark:border-white/5`}
-        >
-          {selectedProfile && (
-            <>
+        {/* Profile Right Sidebar — Retired in favor of global MiniProfilePopup */}
+        {false && (
+          <>
               <div className="sticky top-3 z-50 flex justify-end px-3 w-full gap-2" style={{ height: 0, pointerEvents: 'none' }}>
                 {selectedProfile.id !== currentUser?.id && (
                 <div className="relative pointer-events-auto">
@@ -2246,9 +2025,8 @@ export default function Beranda() {
                 </div>
               </div>
 
-            </>
-          )}
-        </div>
+          </>
+        )}
 
 
         {activeTab === "chat" && (

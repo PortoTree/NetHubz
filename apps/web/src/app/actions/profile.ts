@@ -101,6 +101,88 @@ export const getProfileStats = async (userId: string) => {
   }
 };
 
+export const getMiniProfileData = async (
+  target: { userId?: string; username?: string },
+  currentUserId?: string
+) => {
+  try {
+    let whereClause: any = {};
+    if (target.userId) {
+      whereClause = { id: target.userId };
+    } else if (target.username) {
+      whereClause = { username: target.username };
+    } else {
+      return { success: false as const, error: "No target user specified" };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: whereClause,
+      select: {
+        id: true,
+        username: true,
+        profile: {
+          select: {
+            displayName: true,
+            avatarUrl: true,
+            coverUrl: true,
+            bio: true,
+          }
+        },
+        _count: {
+          select: {
+            followers: true,
+            posts: true,
+            friendshipsAsUser: { where: { status: 'ACCEPTED' } },
+            friendshipsAsFriend: { where: { status: 'ACCEPTED' } },
+          }
+        }
+      }
+    });
+
+    if (!user) {
+      return { success: false as const, error: "User not found" };
+    }
+
+    let isFollowing = false;
+    if (currentUserId && currentUserId !== user.id) {
+      const follow = await prisma.follow.findUnique({
+        where: {
+          followerId_followingId: {
+            followerId: currentUserId,
+            followingId: user.id
+          }
+        }
+      });
+      isFollowing = !!follow;
+    }
+
+    const followersCount = user._count?.followers || 0;
+    const postsCount = user._count?.posts || 0;
+    const friendsCount = (user._count?.friendshipsAsUser || 0) + (user._count?.friendshipsAsFriend || 0);
+
+    return {
+      success: true as const,
+      data: {
+        id: user.id,
+        username: user.username,
+        displayName: user.profile?.displayName || user.username,
+        avatarUrl: user.profile?.avatarUrl || null,
+        coverUrl: user.profile?.coverUrl || null,
+        bio: user.profile?.bio || null,
+        stats: {
+          followers: followersCount,
+          friends: friendsCount,
+          posts: postsCount
+        },
+        isFollowing
+      }
+    };
+  } catch (error: any) {
+    console.error("getMiniProfileData error:", error);
+    return { success: false as const, error: "Failed to load mini profile" };
+  }
+};
+
 export async function updateDisplayName(token: string, userId: string, newDisplayName: string) {
   if (!verifyToken(token, userId)) return { success: false, error: "Unauthorized" };
   try {

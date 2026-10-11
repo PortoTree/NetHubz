@@ -1,6 +1,9 @@
 {
   "name": "nethubz.com-monorepo",
   "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
   "scripts": {
     "dev": "concurrently \"npm run dev --prefix apps/web\" \"npm run start:dev --prefix apps/api\"",
     "dev:api": "npm run start:dev --prefix apps/api",

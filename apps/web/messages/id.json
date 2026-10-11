@@ -1147,5 +1147,14 @@
             "hobby": "Hobby",
             "interests": "Minat"
         }
+    },
+    "profilePopup": {
+        "followers": "Pengikut",
+        "friends": "Teman",
+        "posts": "Postingan",
+        "follow": "Ikuti",
+        "following": "Mengikuti",
+        "viewProfile": "Lihat Profil",
+        "close": "Tutup"
     }
 }

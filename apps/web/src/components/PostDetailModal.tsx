@@ -22,6 +22,7 @@ import Image from "next/image";
 import { ReactionSummaryPopup } from "./ReactionSummaryPopup";
 
 import { commentsCache } from "@/utils/cache";
+import { useMiniProfile } from "@/contexts/MiniProfileContext";
 
 interface PostDetailModalProps {
   isOpen: boolean;
@@ -54,6 +55,7 @@ export function CommentItem({
   bgColorClass = "bg-gray-50 dark:bg-[#18191A]",
   targetType = "post"
 }: any) {
+  const { openMiniProfile } = useMiniProfile();
   const currentRootId = depth === 0 ? comment.id : rootId;
   const [replies, setReplies] = useState<any[]>([]);
   const [showReplies, setShowReplies] = useState(false);
@@ -293,14 +295,28 @@ export function CommentItem({
         {isReplying && depth >= 2 && inputElement && (
           <div className="absolute left-[15px] top-[32px] bottom-[-28px] border-l-[1.5px] border-blue-500 z-10" />
         )}
-        <img src={comment.author?.profile?.avatarUrl || "/default-avatar.svg"} alt="Avatar" className="w-8 h-8 rounded-full object-cover shrink-0 cursor-pointer relative z-50" onClick={() => router.push(`/${locale}/p/${comment.author?.username}/${comment.author?.id}`)} />
+        <img
+          src={comment.author?.profile?.avatarUrl || "/default-avatar.svg"}
+          alt="Avatar"
+          className="w-8 h-8 rounded-full object-cover shrink-0 cursor-pointer relative z-50 hover:opacity-85 transition-opacity"
+          onClick={(e) => {
+            e.stopPropagation();
+            openMiniProfile(comment.author, e);
+          }}
+        />
         <div className="flex-1 relative z-40">
           <div className="group/comment relative">
           <button type="button" aria-label={t("postModal.more") || "Opsi lainnya"} className="absolute right-0 top-0 opacity-0 group-hover/comment:opacity-100 p-1 rounded-full text-gray-500 hover:bg-gray-100 dark:text-[#B0B3B8] dark:hover:bg-[#3A3B3C] transition-all shrink-0">
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg>
           </button>
           <div className="flex items-center gap-1.5 flex-wrap pr-6">
-            <h4 className="font-semibold text-[13px] text-gray-900 dark:text-[#E4E6EB] cursor-pointer hover:underline" onClick={() => router.push(`/${locale}/p/${comment.author?.username}/${comment.author?.id}`)}>
+            <h4
+              className="font-semibold text-[13px] text-gray-900 dark:text-[#E4E6EB] cursor-pointer hover:underline"
+              onClick={(e) => {
+                e.stopPropagation();
+                openMiniProfile(comment.author, e);
+              }}
+            >
               {comment.author?.profile?.displayName || comment.author?.username}
             </h4>
             <span className="text-gray-400 dark:text-gray-500 text-[11px] select-none">|</span>
@@ -678,6 +694,7 @@ export default function PostDetailModal({ isOpen, onClose, post, currentUser, ta
   const t = useTranslations();
   const locale = useLocale();
   const router = useRouter();
+  const { openMiniProfile } = useMiniProfile();
 
   const [comments, setComments] = useState<any[]>([]);
   const [isLoadingComments, setIsLoadingComments] = useState(true);
@@ -1034,7 +1051,18 @@ export default function PostDetailModal({ isOpen, onClose, post, currentUser, ta
         const id = match[2].split('/')[1] || username;
         const isCurrentUser = currentUser && (id === currentUser.id || username === currentUser.username);
         const colorClass = isCurrentUser ? "text-blue-500 font-semibold bg-blue-50 dark:bg-blue-900/30 px-1 rounded" : "text-sky-500 dark:text-sky-400";
-        return <span key={i} className={`${colorClass} cursor-pointer hover:underline`} onClick={(e) => { e.stopPropagation(); router.push(`/${locale}/p/${username}/${id}`); }}>@{match[1]}</span>;
+        return (
+          <span
+            key={i}
+            className={`${colorClass} cursor-pointer hover:underline`}
+            onClick={(e) => {
+              e.stopPropagation();
+              openMiniProfile({ userId: id, username }, e);
+            }}
+          >
+            @{match[1]}
+          </span>
+        );
       }
       return <span key={i}>{part}</span>;
     });

@@ -15,6 +15,7 @@ import { ReactionButton, ReactionType, REACTION_CONFIG } from "./ReactionButton"
 import Image from "next/image";
 import toast from "react-hot-toast";
 import SaveToFolderModal from "./SaveToFolderModal";
+import { useMiniProfile } from "@/contexts/MiniProfileContext";
 
 export function formatPostTime(timestamp: number | Date, t: any, locale: string) {
   const ts = new Date(timestamp).getTime();
@@ -43,10 +44,20 @@ export function formatPostTime(timestamp: number | Date, t: any, locale: string)
   }
 }
 
-export default function PostCard({ post, currentUser, onProfileClick, isHighlighted = false, hideFooter = false, disableClicks = false, showAllReactions = false }: { post: any; currentUser: any; onProfileClick?: (user: any) => void; isHighlighted?: boolean; hideFooter?: boolean; disableClicks?: boolean; showAllReactions?: boolean; }) {
+export default function PostCard({ post, currentUser, onProfileClick, isHighlighted = false, hideFooter = false, disableClicks = false, showAllReactions = false }: { post: any; currentUser: any; onProfileClick?: (user: any, event?: React.MouseEvent) => void; isHighlighted?: boolean; hideFooter?: boolean; disableClicks?: boolean; showAllReactions?: boolean; }) {
   const t = useTranslations();
   const locale = useLocale();
   const router = useRouter();
+  const { openMiniProfile } = useMiniProfile();
+
+  const handleUserClick = (user: any, e?: React.MouseEvent) => {
+    if (onProfileClick) {
+      onProfileClick(user, e);
+    } else {
+      openMiniProfile(user, e);
+    }
+  };
+
   const [activePostMenu, setActivePostMenu] = useState<boolean>(false);
   const [isContentExpanded, setIsContentExpanded] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -225,8 +236,7 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
               className={`${colorClass} hover:underline cursor-pointer`}
               onClick={(e) => {
                 e.stopPropagation();
-                if (onProfileClick) onProfileClick(taggedUser);
-                else router.push(`/${locale}/p/${taggedUser.username}/${taggedUser.id}`);
+                handleUserClick(taggedUser, e);
               }}
             >
               {part}
@@ -337,12 +347,8 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
       <div className="flex items-center justify-between pb-2 px-4 relative">
         <div
           className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
-          onClick={() => {
-            if (onProfileClick) {
-              onProfileClick(post.author);
-            } else {
-              router.push(`/${locale}/p/${post.author?.username}/${post.authorId}`);
-            }
+          onClick={(e) => {
+            handleUserClick(post.author, e);
           }}
         >
           <div className="w-[40px] h-[40px] rounded-full flex items-center justify-center shrink-0 overflow-hidden border border-emerald-600 dark:border-emerald-400">
@@ -409,8 +415,8 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
                   {isSaved ? (t("postMenu.unsavePost") || "Hapus dari Tersimpan") : (t("postMenu.savePost") || "Simpan Postingan")}
                 </button>
                 <button
-                  onClick={() => {
-                    router.push(`/${locale}/p/${post.author?.username}/${post.authorId}`);
+                  onClick={(e) => {
+                    handleUserClick(post.author, e);
                     setActivePostMenu(false);
                   }}
                   className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] transition-colors text-left text-black dark:text-[#E4E6EB] font-semibold text-[15px]"
@@ -509,9 +515,8 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
         <div className="px-4 mb-3">
           {post.taggedUsers.length === 1 ? (
             <div 
-              onClick={() => {
-                if (onProfileClick) onProfileClick(post.taggedUsers[0]);
-                else router.push(`/${locale}/p/${post.taggedUsers[0].username}/${post.taggedUsers[0].id}`);
+              onClick={(e) => {
+                handleUserClick(post.taggedUsers[0], e);
               }}
               className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-[#3A3B3C] border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-[#4E4F50] transition-colors"
             >
@@ -526,9 +531,8 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
               {post.taggedUsers.map((user: any, idx: number) => (
                 <div 
                   key={idx} 
-                  onClick={() => {
-                    if (onProfileClick) onProfileClick(user);
-                    else router.push(`/${locale}/p/${user.username}/${user.id}`);
+                  onClick={(e) => {
+                    handleUserClick(user, e);
                   }}
                   className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-[#3A3B3C] border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-[#4E4F50] transition-colors"
                 >
@@ -834,24 +838,21 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
             <div className="p-4 flex-1 overflow-y-auto flex flex-col gap-2">
               {post.taggedUsers?.map((user: any) => (
                 <div key={user.id} className="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-[#3A3B3C] rounded-xl transition-colors">
-                  <img src={user.profile?.avatarUrl || "/default-avatar.svg"} className="w-10 h-10 rounded-full object-cover cursor-pointer" onClick={() => {
+                  <img src={user.profile?.avatarUrl || "/default-avatar.svg"} className="w-10 h-10 rounded-full object-cover cursor-pointer" onClick={(e) => {
                       setIsTagListModalOpen(false);
-                      if (onProfileClick) onProfileClick(user);
-                      else router.push(`/${locale}/p/${user.username}/${user.id}`);
+                      handleUserClick(user, e);
                     }} />
-                  <div className="flex flex-col flex-1 cursor-pointer" onClick={() => {
+                  <div className="flex flex-col flex-1 cursor-pointer" onClick={(e) => {
                       setIsTagListModalOpen(false);
-                      if (onProfileClick) onProfileClick(user);
-                      else router.push(`/${locale}/p/${user.username}/${user.id}`);
+                      handleUserClick(user, e);
                     }}>
                     <span className="font-semibold text-[15px] dark:text-[#E4E6EB]">{user.profile?.displayName || user.username}</span>
                     <span className="text-[13px] text-gray-500">@{user.username}</span>
                   </div>
                   <button 
-                    onClick={() => {
+                    onClick={(e) => {
                       setIsTagListModalOpen(false);
-                      if (onProfileClick) onProfileClick(user);
-                      else router.push(`/${locale}/p/${user.username}/${user.id}`);
+                      handleUserClick(user, e);
                     }}
                     className="px-3 py-1.5 bg-gray-100 dark:bg-[#4E4F50] hover:bg-gray-200 dark:hover:bg-[#5C5D5F] rounded-lg text-sm font-semibold text-black dark:text-[#E4E6EB] transition-colors"
                   >

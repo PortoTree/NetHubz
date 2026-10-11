@@ -18,6 +18,7 @@ export const metadata: Metadata = {
 
 import SplashScreen from "@/components/SplashScreen";
 import { UserProvider } from "@/contexts/UserContext";
+import { MiniProfileProvider } from "@/contexts/MiniProfileContext";
 import GlobalPostModal from "@/components/GlobalPostModal";
 import ClientNavbar from "@/components/ClientNavbar";
 import BottomNav from "@/components/BottomNav";
@@ -43,12 +44,14 @@ export default async function LocaleLayout({
     <NextIntlClientProvider messages={messages}>
       <SplashScreen />
       <UserProvider>
-        <ClientNavbar />
-        <div className="pb-14 md:pb-0">
-          {children}
-          <GlobalPostModal />
-        </div>
-        <BottomNav />
+        <MiniProfileProvider>
+          <ClientNavbar />
+          <div className="pb-14 md:pb-0">
+            {children}
+            <GlobalPostModal />
+          </div>
+          <BottomNav />
+        </MiniProfileProvider>
       </UserProvider>
     </NextIntlClientProvider>
   );

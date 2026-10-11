@@ -8,7 +8,7 @@ import { useSearchParams } from "next/navigation";
 
 interface PostFeedProps {
   currentUser: any;
-  onProfileClick?: (user: any) => void;
+  onProfileClick?: (user: any, event?: any) => void;
   targetProfileId?: string;
 }
 
