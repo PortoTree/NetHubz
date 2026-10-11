@@ -80,7 +80,7 @@ export default function BottomNav() {
           handleNav('profile');
         }
       }} className={`flex flex-col items-center justify-center w-16 h-full cursor-pointer ${activeTab === 'profile' ? 'text-emerald-500' : 'text-gray-500 dark:text-[#B0B3B8]'}`}>
-        <img src={(currentUser?.profile?.avatarUrl || profileCache.get(currentUser?.id)?.avatarUrl) ? getOptimizedUrl((currentUser?.profile?.avatarUrl || profileCache.get(currentUser?.id)?.avatarUrl), "avatar") : "/default-avatar.png"} alt="Profile" className={`w-9 h-9 rounded-full object-cover ${activeTab === 'profile' ? 'border-2 border-emerald-500' : 'border border-transparent'}`} />
+        <img src={(currentUser?.profile?.avatarUrl || profileCache.get(currentUser?.id)?.avatarUrl) ? getOptimizedUrl((currentUser?.profile?.avatarUrl || profileCache.get(currentUser?.id)?.avatarUrl), "avatar") : "/default-avatar.svg"} alt="Profile" className={`w-9 h-9 rounded-full object-cover ${activeTab === 'profile' ? 'border-2 border-emerald-500' : 'border border-transparent'}`} />
       </div>
     </div>
   );

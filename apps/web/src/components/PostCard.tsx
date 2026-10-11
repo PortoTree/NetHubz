@@ -327,7 +327,7 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
 
   return (
     <>
-    <div className={`bg-transparent sm:bg-white sm:dark:bg-[#242526] rounded-none sm:rounded-xl shadow-none sm:shadow-sm border-0 sm:border border-b border-gray-200 dark:border-[#3E4042] pt-2 sm:pt-4 px-0 transition-all duration-1000 ${isHighlighted ? "sm:border-yellow-400 sm:dark:border-yellow-500 sm:shadow-[0_0_15px_rgba(250,204,21,0.4)] bg-yellow-50/50 sm:bg-white" : "sm:border-gray-100 sm:dark:border-[#3E4042]"}`}>
+    <div className={`bg-transparent sm:bg-white sm:dark:bg-[#242526] rounded-none sm:rounded-xl shadow-none sm:shadow-sm border-0 sm:border border-b border-gray-300 dark:border-[#3E4042] pt-2 sm:pt-4 px-0 transition-all duration-1000 ${isHighlighted ? "sm:border-yellow-400 sm:dark:border-yellow-500 sm:shadow-[0_0_15px_rgba(250,204,21,0.4)] bg-yellow-50/50 sm:bg-white" : "sm:border-gray-300 sm:dark:border-[#3E4042]"}`}>
       {isHighlighted && (
         <div className="px-4 pb-2 mb-2 border-b border-gray-100 dark:border-[#3E4042] text-xs font-bold text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
           <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" /><path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" /></svg>

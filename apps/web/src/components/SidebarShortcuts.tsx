@@ -55,7 +55,7 @@ export default function SidebarShortcuts() {
   const router = useRouter();
 
   return (
-    <div className="mt-4 pt-4 border-t border-gray-300 dark:border-gray-700">
+    <div className="mt-4 pt-4 border-t border-gray-300 dark:border-gray-700 first:mt-0 first:pt-0 first:border-t-0">
       <div className="flex items-center justify-between mb-3 px-2">
         <h3 className="font-semibold text-gray-500 dark:text-[#B0B3B8] text-[15px]">
           {t("sidebar.shortcuts") || "Your Shortcuts"}
