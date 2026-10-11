@@ -10,14 +10,14 @@
     "dev:web": "npm run dev --prefix apps/web",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "postinstall": "prisma generate"
+    "postinstall": "npx prisma generate"
   },
   "devDependencies": {
-    "concurrently": "^9.2.4",
-    "prisma": "^5.21.0"
+    "concurrently": "^9.2.4"
   },
   "dependencies": {
     "@prisma/client": "^5.21.0",
-    "cloudinary": "^2.11.0"
+    "cloudinary": "^2.11.0",
+    "prisma": "^5.21.0"
   }
 }
