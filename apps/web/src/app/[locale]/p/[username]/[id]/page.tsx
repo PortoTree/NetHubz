@@ -15,7 +15,8 @@ import ProfileMediaSelectionModal from "@/components/ProfileMediaSelectionModal"
 import ImagePreviewModal from "@/components/ImagePreviewModal";
 import { ShinyButton } from "@/components/ui/shiny-button";
 import { uploadToCloudinary } from "@/utils/uploadImage";
-import { updateProfileMedia, getProfile, getProfileStats } from "@/app/actions/profile";
+import { updateProfileMedia, deleteProfileMedia, getProfile, getProfileStats } from "@/app/actions/profile";
+import toast from "react-hot-toast";
 import { getUserGalleries, createGallery, updateGallery, deleteGallery, deleteMediaFromGallery, moveMediaToAnotherGallery, setGalleryCover } from "@/app/actions/galleries";
 import { getConnectionStatus, handlePrimaryConnectionAction, toggleBlock, removeFollower } from "@/app/actions/connections";
 import { getOptimizedUrl } from "@/utils/cloudinary";
@@ -50,6 +51,7 @@ function ProfilePageContent({
   const tEdit = useTranslations("editProfile");
   const tFeed = useTranslations("feed");
   const tProject = useTranslations("project");
+  const tMedia = useTranslations("profileMediaOptions");
 
   const getMediaThumbnail = (url: string, type: 'thumb' | 'feed' | 'preview' = 'thumb') => {
     if (!url) return '';
@@ -113,6 +115,42 @@ function ProfilePageContent({
 
   const [mediaModalOpen, setMediaModalOpen] = useState(false);
   const [mediaModalType, setMediaModalType] = useState<"avatar" | "cover">("avatar");
+  const [mediaActionMenu, setMediaActionMenu] = useState<{
+    type: "avatar" | "cover";
+    coords: { x: number; y: number };
+  } | null>(null);
+  const [isDeletingMedia, setIsDeletingMedia] = useState(false);
+
+  const handleDeleteProfileMedia = async () => {
+    if (!mediaActionMenu || isDeletingMedia) return;
+    const typeToDelete = mediaActionMenu.type;
+    if (!window.confirm(tMedia("deleteConfirm"))) return;
+
+    setIsDeletingMedia(true);
+    try {
+      const token = localStorage.getItem("token") || "";
+      const res = await deleteProfileMedia(token, profileData?.id || currentUser?.id, typeToDelete);
+      if (res.success) {
+        if (typeToDelete === "avatar") {
+          setAvatarPreview(null);
+        } else {
+          setCoverPreview(null);
+        }
+        window.dispatchEvent(new CustomEvent('profile-media-updated', {
+          detail: { type: typeToDelete, url: null }
+        }));
+        toast.success(tMedia("deleteSuccess"));
+        setMediaActionMenu(null);
+      } else {
+        toast.error(tMedia("deleteFailed"));
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error(tMedia("deleteFailed"));
+    } finally {
+      setIsDeletingMedia(false);
+    }
+  };
 
   // Gallery states
   const [galleries, setGalleries] = useState<any[]>([]);
@@ -918,7 +956,7 @@ function ProfilePageContent({
             
             {/* Cloned Nav Container inside Right Column */}
             <div className="flex-1 min-w-0">
-              <div className="w-full max-w-[590px] mx-auto flex justify-center bg-white/90 dark:bg-[#18191A]/90 backdrop-blur-md py-2 border border-gray-200/50 dark:border-gray-800/50 shadow-sm rounded-b-2xl pointer-events-auto">
+              <div className="w-full max-w-[590px] mx-auto flex justify-center bg-white/30 dark:bg-[#18191A]/30 backdrop-blur-md py-2 border border-white/40 dark:border-white/10 shadow-lg rounded-b-2xl pointer-events-auto">
                 <ul className="flex gap-3 px-2">
                   {[
                     {
@@ -991,10 +1029,10 @@ function ProfilePageContent({
         }
       `}</style>
 
-      <div className="max-w-[1100px] mx-auto px-4 md:px-8">
+      <div className="max-w-[1100px] mx-auto px-0 md:px-8">
 
         {/* Cover Photo */}
-        <div className="w-full aspect-[3/1] rounded-b-[40px] relative overflow-hidden bg-gray-200 dark:bg-gray-700 shadow-sm">
+        <div className="w-full h-44 sm:h-56 md:h-auto md:aspect-[3/1] rounded-none md:rounded-b-[40px] relative overflow-hidden bg-gray-200 dark:bg-gray-700 shadow-sm">
           {isLoadingProfile ? (
             <div className="w-full h-full bg-gray-300 dark:bg-[#3E4042] animate-pulse" />
           ) : (
@@ -1004,10 +1042,13 @@ function ProfilePageContent({
                 src={isProfileInaccessible ? "/sampul-placeholder.png" : (getOptimizedUrl(coverPreview, "cover") || "/sampul-placeholder.png")}
                 alt="Cover"
                 className={`w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity ${isUploadingCover ? "opacity-50" : ""}`}
-                onClick={() => {
+                onClick={(e) => {
                   if (isOwnProfile) {
-                    setMediaModalType("cover");
-                    setMediaModalOpen(true);
+                    e.stopPropagation();
+                    setMediaActionMenu({
+                      type: "cover",
+                      coords: { x: e.clientX, y: e.clientY }
+                    });
                   } else {
                     setPreviewImageSrc(coverPreview || "/sampul-placeholder.png");
                     setPreviewModalOpen(true);
@@ -1021,26 +1062,19 @@ function ProfilePageContent({
               )}
             </>
           )}
-          {isOwnProfile && (
-            <button onClick={() => { setMediaModalType("cover"); setMediaModalOpen(true); }} className="absolute bottom-4 right-4 bg-black/50 hover:bg-black/70 text-white p-2.5 rounded-full backdrop-blur-sm transition-colors cursor-pointer shadow-md z-30">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-            </button>
-          )}
         </div>
 
         {/* Main Content Grid */}
-        <div className="flex flex-col md:flex-row gap-6 -mt-[80px] px-2 md:px-6 relative z-10">
+        <div className="flex flex-col md:flex-row gap-6 -mt-10 sm:-mt-14 md:-mt-[80px] px-0 md:px-6 relative z-10">
 
           {/* Left Sidebar */}
-          <div className="w-full md:w-[320px] shrink-0 flex flex-col gap-6 relative z-20">
+          <div className="w-full md:w-[320px] shrink-0 flex flex-col gap-0 md:gap-6 relative z-20">
             {/* Actual Profile Card */}
-            <div className="w-full bg-gradient-to-b from-white to-[#D9D9D9] dark:from-[#3A3B3C] dark:to-[#18191A] rounded-[40px] px-8 pt-8 pb-5 shadow-xl flex flex-col justify-between border border-white/20 dark:border-white/5 transition-all duration-300 min-h-[460px]">
+            <div className="w-full bg-gradient-to-b from-white to-[#D9D9D9] dark:from-[#3A3B3C] dark:to-[#18191A] rounded-t-[32px] rounded-b-none md:rounded-[40px] px-5 sm:px-6 md:px-8 pt-6 md:pt-8 pb-5 shadow-xl flex flex-col justify-between border-t border-b md:border border-white/20 dark:border-white/5 transition-all duration-300 min-h-[420px] md:min-h-[460px]">
               <div className="flex flex-col items-center w-full h-full">
                 {/* Avatar */}
-                <div className="relative mb-4">
-                  <div className="w-[120px] h-[120px] rounded-full border-[4px] border-white dark:border-[#3A3B3C] bg-white dark:bg-[#242526] flex items-center justify-center shadow-md overflow-hidden">
+                <div className="relative mb-3 md:mb-4">
+                  <div className="w-[100px] h-[100px] md:w-[120px] md:h-[120px] rounded-full border-[3.5px] md:border-[4px] border-white dark:border-[#3A3B3C] bg-white dark:bg-[#242526] flex items-center justify-center shadow-md overflow-hidden">
                     {isLoadingProfile ? (
                       <div className="w-full h-full bg-gray-300 dark:bg-[#3E4042] animate-pulse" />
                     ) : (
@@ -1050,10 +1084,13 @@ function ProfilePageContent({
                           src={isProfileInaccessible ? "/default-avatar.svg" : (getOptimizedUrl(avatarPreview, "avatar") || "/default-avatar.svg")}
                           alt="Avatar"
                           className={`w-full h-full object-cover cursor-pointer hover:opacity-90 transition-opacity ${isUploadingAvatar ? "opacity-50" : ""}`}
-                          onClick={() => {
+                          onClick={(e) => {
                             if (isOwnProfile) {
-                              setMediaModalType("avatar");
-                              setMediaModalOpen(true);
+                              e.stopPropagation();
+                              setMediaActionMenu({
+                                type: "avatar",
+                                coords: { x: e.clientX, y: e.clientY }
+                              });
                             } else {
                               setPreviewImageSrc(avatarPreview || "/default-avatar.svg");
                               setPreviewModalOpen(true);
@@ -1068,13 +1105,6 @@ function ProfilePageContent({
                       </>
                     )}
                   </div>
-                  {isOwnProfile && (
-                    <button onClick={() => { setMediaModalType("avatar"); setMediaModalOpen(true); }} className="absolute bottom-0 right-0 bg-gray-200 hover:bg-gray-300 dark:bg-[#4E4F50] dark:hover:bg-[#5E5F60] p-2 rounded-full border-[3px] border-white dark:border-[#3A3B3C] shadow-sm transition-colors text-black dark:text-white cursor-pointer z-10">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                      </svg>
-                    </button>
-                  )}
                 </div>
 
                 {isLoadingProfile ? (
@@ -1084,15 +1114,15 @@ function ProfilePageContent({
                   </div>
                 ) : (
                   <>
-                    <h1 className="text-2xl font-bold text-black dark:text-white">
+                    <h1 className="text-xl md:text-2xl font-bold text-black dark:text-white text-center">
                       {isProfileInaccessible ? (isBlockedByThem ? t("someone", { fallback: "Seseorang" }) : displayName || username) : (displayName || (username === "pampam" ? "nama akun" : username))}
                     </h1>
-                    <p className="text-[15px] text-gray-700 dark:text-gray-300 font-medium mb-3">@{username}</p>
+                    <p className="text-[13px] md:text-[15px] text-gray-700 dark:text-gray-300 font-medium mb-3 text-center">@{username}</p>
                   </>
                 )}
                 {/* Social Media Icons */}
                 {!isProfileInaccessible && isVisible(settings?.privacySosmed) && profileData?.user?.socialLinks && profileData.user.socialLinks.length > 0 && (
-                  <div className="flex flex-wrap items-center justify-center gap-2.5 mb-8 px-4">
+                  <div className="flex flex-wrap items-center justify-center gap-2 md:gap-2.5 mb-3 md:mb-8 px-2 md:px-4">
                     {profileData.user.socialLinks.map((social: any) => {
                       const getSocialUrl = (platform: string, username: string) => {
                         if (username.startsWith('http')) return username;
@@ -1116,9 +1146,9 @@ function ProfilePageContent({
                           href={getSocialUrl(social.platform, social.url)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="w-9 h-9 rounded-full bg-gray-100 dark:bg-[#3A3B3C] flex items-center justify-center hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors shadow-sm border border-gray-200 dark:border-[#4E4F50] shrink-0 group relative z-10"
+                          className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-gray-100 dark:bg-[#3A3B3C] flex items-center justify-center hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors shadow-sm border border-gray-200 dark:border-[#4E4F50] shrink-0 group relative z-10"
                         >
-                          <img src={`/sosmed/${social.platform.toLowerCase()}.webp`} alt={social.platform} className="w-5 h-5 object-contain drop-shadow-sm group-hover:scale-110 transition-transform" />
+                          <img src={`/sosmed/${social.platform.toLowerCase()}.webp`} alt={social.platform} className="w-4 h-4 md:w-5 md:h-5 object-contain drop-shadow-sm group-hover:scale-110 transition-transform" />
 
                           {/* Tooltip */}
                           <div className="absolute -top-11 left-1/2 -translate-x-1/2 bg-[#1C1E21] dark:bg-white text-[#E4E6EB] dark:text-black px-2.5 py-1.5 rounded-lg text-[12px] whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex items-center gap-1.5 shadow-xl z-50 pointer-events-none">
@@ -1131,6 +1161,21 @@ function ProfilePageContent({
                         </a>
                       )
                     })}
+                  </div>
+                )}
+
+                {/* Mobile Edit Profile Button (only on mobile & own profile) */}
+                {isOwnProfile && (
+                  <div className="flex md:hidden w-full justify-center mb-4">
+                    <button
+                      onClick={() => setIsEditModalOpen(true)}
+                      className="bg-gray-200 hover:bg-gray-300 dark:bg-[#4E4F50] dark:hover:bg-[#5E5F60] text-black dark:text-white font-bold py-2 px-5 rounded-full text-sm transition-colors shadow-sm flex items-center gap-2 cursor-pointer"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                      {t("editProfile")}
+                    </button>
                   </div>
                 )}
 
@@ -1329,15 +1374,15 @@ function ProfilePageContent({
             {!isLoadingProfile && !isProfileInaccessible && (
               <button
                 onClick={() => setIsDetailModalOpen(true)}
-                className="w-full mt-4 bg-white dark:bg-[#242526] hover:bg-gray-50 dark:hover:bg-[#3A3B3C]/50 border border-gray-200 dark:border-[#3A3B3C] rounded-[24px] p-4 shadow-sm flex items-center justify-between transition-colors group"
+                className="w-full mt-0 md:mt-4 bg-white dark:bg-[#242526] hover:bg-gray-50 dark:hover:bg-[#2c2d2e] border-b md:border border-gray-200 dark:border-[#3E4042] md:border-gray-200 md:dark:border-[#3A3B3C] rounded-none md:rounded-[24px] px-5 py-3.5 md:p-4 shadow-sm flex items-center justify-between transition-colors group cursor-pointer"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-900/20 flex items-center justify-center text-emerald-500">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                    <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   </div>
-                  <span className="font-bold text-gray-800 dark:text-gray-200 text-[14px]">{t("viewDetails")}</span>
+                  <span className="font-semibold text-gray-900 dark:text-[#E4E6EB] text-[14px] md:text-[15px] tracking-tight">{t("viewDetails")}</span>
                 </div>
-                <svg className="w-5 h-5 text-gray-400 group-hover:text-emerald-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                <svg className="w-4 h-4 md:w-5 md:h-5 text-gray-400 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
               </button>
             )}
 
@@ -1345,11 +1390,11 @@ function ProfilePageContent({
           </div>
 
           {/* Right Content Area */}
-          <div className="flex-1 flex flex-col gap-4 md:mt-24 min-w-0">
+          <div className="flex-1 flex flex-col gap-4 md:mt-24 min-w-0 px-3 sm:px-4 md:px-0">
 
             {/* Top Row: Friends & Buttons */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-gray-300 dark:border-gray-700 pb-4">
-              <div className="flex items-center gap-6 sm:gap-10">
+            <div className="flex flex-col sm:flex-row items-center justify-between border-b border-gray-300 dark:border-gray-700 pb-4">
+              <div className="flex items-center justify-center w-full sm:w-auto gap-8 sm:gap-10">
                 <div
                   onClick={() => {
                     if (!isProfileInaccessible) {
@@ -1399,9 +1444,9 @@ function ProfilePageContent({
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-3 mt-4 sm:mt-0">
+              <div className={`items-center gap-3 ${isOwnProfile ? 'hidden md:flex' : 'flex mt-4 sm:mt-0 justify-center w-full sm:w-auto'}`}>
                 {isOwnProfile ? (
-                  <button onClick={() => setIsEditModalOpen(true)} className="bg-gray-200 hover:bg-gray-300 dark:bg-[#4E4F50] dark:hover:bg-[#5E5F60] text-black dark:text-white font-bold py-2 px-5 rounded-full text-sm transition-colors shadow-sm flex items-center gap-2">
+                  <button onClick={() => setIsEditModalOpen(true)} className="bg-gray-200 hover:bg-gray-300 dark:bg-[#4E4F50] dark:hover:bg-[#5E5F60] text-black dark:text-white font-bold py-2 px-5 rounded-full text-sm transition-colors shadow-sm flex items-center gap-2 cursor-pointer">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                     </svg>
@@ -2474,7 +2519,7 @@ function ProfilePageContent({
 
       <EditProfileModal
         isOpen={isEditModalOpen}
-        initialTab={searchParams.get("editTab") || "intro"}
+        initialTab={searchParams.get("editTab") || undefined}
         onClose={async () => {
           setIsEditModalOpen(false);
           // Clean up URL if edit params are present
@@ -2542,6 +2587,110 @@ function ProfilePageContent({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Profile Media Action Popup Dropdown */}
+      {mediaActionMenu && typeof document !== "undefined" && createPortal(
+        <>
+          {/* Transparent backdrop to dismiss dropdown on outside click */}
+          <div
+            className="fixed inset-0 z-[99998] bg-transparent"
+            onClick={() => setMediaActionMenu(null)}
+          />
+
+          {/* Popup Dropdown at Click Coordinates with opacity 30 and blur */}
+          <div
+            className="fixed z-[99999] w-52 sm:w-56 bg-white/30 dark:bg-black/30 backdrop-blur-md rounded-2xl shadow-2xl border border-white/40 dark:border-white/15 p-1.5 animate-in fade-in zoom-in-95 duration-150"
+            style={(() => {
+              const menuWidth = 224;
+              const menuHeight = 140;
+              const padding = 12;
+              let left = mediaActionMenu.coords.x;
+              let top = mediaActionMenu.coords.y + 6;
+
+              if (typeof window !== "undefined") {
+                if (left + menuWidth > window.innerWidth - padding) {
+                  left = Math.max(padding, window.innerWidth - menuWidth - padding);
+                }
+                if (left < padding) {
+                  left = padding;
+                }
+                if (top + menuHeight > window.innerHeight - padding) {
+                  top = Math.max(padding, mediaActionMenu.coords.y - menuHeight - 6);
+                }
+              }
+
+              return { top, left };
+            })()}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Option 1: Lihat Gambar */}
+            <button
+              onClick={() => {
+                if (mediaActionMenu.type === "avatar") {
+                  setPreviewImageSrc(avatarPreview || "/default-avatar.svg");
+                } else {
+                  setPreviewImageSrc(coverPreview || "/sampul-placeholder.png");
+                }
+                setPreviewModalOpen(true);
+                setMediaActionMenu(null);
+              }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-900 dark:text-white hover:bg-white/40 dark:hover:bg-white/15 rounded-xl transition-colors font-medium text-left cursor-pointer"
+            >
+              <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              <span>{mediaActionMenu.type === "avatar" ? tMedia("viewAvatar") : tMedia("viewCover")}</span>
+            </button>
+
+            {/* Option 2: Ubah Gambar */}
+            <button
+              onClick={() => {
+                const type = mediaActionMenu.type;
+                setMediaActionMenu(null);
+                setMediaModalType(type);
+                setMediaModalOpen(true);
+              }}
+              className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-gray-900 dark:text-white hover:bg-white/40 dark:hover:bg-white/15 rounded-xl transition-colors font-medium text-left cursor-pointer"
+            >
+              <svg className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>{mediaActionMenu.type === "avatar" ? tMedia("changeAvatar") : tMedia("changeCover")}</span>
+            </button>
+
+            {/* Option 3: Hapus Gambar (jika gambar kustom ada) */}
+            {(mediaActionMenu.type === "avatar" 
+              ? Boolean(avatarPreview && !avatarPreview.includes("default-avatar.svg"))
+              : Boolean(coverPreview && !coverPreview.includes("sampul-placeholder.png"))
+            ) && (
+              <>
+                <div className="my-1 border-t border-black/10 dark:border-white/10" />
+                <button
+                  onClick={handleDeleteProfileMedia}
+                  disabled={isDeletingMedia}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-500/15 dark:hover:bg-red-500/20 rounded-xl transition-colors font-semibold text-left cursor-pointer disabled:opacity-50"
+                >
+                  {isDeletingMedia ? (
+                    <div className="w-4 h-4 border-2 border-red-500/30 border-t-red-500 rounded-full animate-spin shrink-0" />
+                  ) : (
+                    <svg className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  )}
+                  <span>
+                    {isDeletingMedia 
+                      ? "..." 
+                      : (mediaActionMenu.type === "avatar" ? tMedia("deleteAvatar") : tMedia("deleteCover"))
+                    }
+                  </span>
+                </button>
+              </>
+            )}
+          </div>
+        </>,
+        document.body
       )}
 
       <ProfileMediaSelectionModal

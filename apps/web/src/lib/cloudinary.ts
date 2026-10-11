@@ -43,3 +43,47 @@ export async function deleteFromCloudinary(publicId: string, resourceType: 'imag
     return false;
   }
 }
+
+/**
+ * Ekstrak publicId dari URL Cloudinary
+ */
+export function extractCloudinaryPublicId(url: string | null | undefined): string | null {
+  if (!url || typeof url !== "string") return null;
+  if (!url.includes("res.cloudinary.com")) return null;
+
+  try {
+    // Hilangkan query parameter dan hash (misal ?t=12345)
+    const cleanUrl = url.split("?")[0].split("#")[0];
+
+    // Harus mengandung /upload/
+    const uploadIndex = cleanUrl.indexOf("/upload/");
+    if (uploadIndex === -1) return null;
+
+    let afterUpload = cleanUrl.substring(uploadIndex + "/upload/".length);
+
+    // Jika memiliki tag versi seperti /v12345/
+    const vMatch = afterUpload.match(/(?:^|\/)v\d+\/(.+)$/);
+    if (vMatch && vMatch[1]) {
+      afterUpload = vMatch[1];
+    } else {
+      // Jika tidak ada versi, split dan abaikan transformasi jika ada
+      const segments = afterUpload.split("/");
+      if (segments.length > 1 && (segments[0].includes(",") || /^[a-z]_[a-z0-9]+/i.test(segments[0]))) {
+        segments.shift();
+      }
+      afterUpload = segments.join("/");
+    }
+
+    // Buang ekstensi file di bagian akhir
+    const lastDotIndex = afterUpload.lastIndexOf(".");
+    if (lastDotIndex !== -1) {
+      afterUpload = afterUpload.substring(0, lastDotIndex);
+    }
+
+    return afterUpload || null;
+  } catch (err) {
+    console.error("Error extracting Cloudinary publicId:", err);
+    return null;
+  }
+}
+

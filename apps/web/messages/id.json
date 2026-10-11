@@ -1036,6 +1036,20 @@
         "loadMoreReplies": "Muat balasan lainnya",
         "writeReply": "Tulis balasan..."
     },
+    "profileMediaOptions": {
+        "avatarTitle": "Foto Profil",
+        "coverTitle": "Foto Sampul",
+        "viewAvatar": "Lihat Foto Profil",
+        "changeAvatar": "Ubah Foto Profil",
+        "deleteAvatar": "Hapus Foto Profil",
+        "viewCover": "Lihat Foto Sampul",
+        "changeCover": "Ubah Foto Sampul",
+        "deleteCover": "Hapus Foto Sampul",
+        "deleteConfirm": "Apakah Anda yakin ingin menghapus foto ini?",
+        "deleteSuccess": "Foto berhasil dihapus",
+        "deleteFailed": "Gagal menghapus foto",
+        "cancel": "Batal"
+    },
     "savedPage": {
         "title": "Koleksi Saya",
         "subtitle": "Simpan dan kelola koleksi folder kamu dan temanmu.",

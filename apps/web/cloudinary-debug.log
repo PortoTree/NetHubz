@@ -37,3 +37,6 @@ Cloudinary delete result: {"result":"ok"}
 Attempting to delete publicId: jp8bcgvjjcwzyrnnosiy with type: image
 Config keys present? name: true, key: true, secret: true
 Cloudinary delete result: {"result":"ok"}
+Attempting to delete publicId: lyx1pt0f1tw76fk0zg7m with type: image
+Config keys present? name: true, key: true, secret: true
+Cloudinary delete result: {"result":"ok"}

@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import CropModal from "@/components/CropModal";
 import ProfileMediaSelectionModal from "@/components/ProfileMediaSelectionModal";
 import { uploadToCloudinary } from "@/utils/uploadImage";
@@ -196,11 +197,52 @@ function SkillInput({ title, options, selected, onChange, tPlaceholder }: { titl
 export default function EditProfileModal({ isOpen, onClose, currentUser, initialTab }: EditProfileModalProps) {
   const t = useTranslations("editProfile");
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState(initialTab || "intro");
+  const [mobileSubTab, setMobileSubTab] = useState<string | null>(initialTab || null);
 
   useEffect(() => {
-    if (isOpen && initialTab) {
-      setActiveTab(initialTab);
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialTab) {
+        setActiveTab(initialTab);
+        setMobileSubTab(initialTab);
+      } else {
+        setActiveTab("intro");
+        setMobileSubTab(null);
+      }
+
+      // Robust mobile and desktop background scroll lock
+      const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+      const originalBodyPosition = document.body.style.position;
+      const originalBodyTop = document.body.style.top;
+      const originalBodyLeft = document.body.style.left;
+      const originalBodyRight = document.body.style.right;
+      const originalBodyWidth = document.body.style.width;
+      const originalBodyOverflow = document.body.style.overflow;
+      const originalDocOverflow = document.documentElement.style.overflow;
+
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = "0";
+      document.body.style.right = "0";
+      document.body.style.width = "100%";
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+
+      return () => {
+        document.body.style.position = originalBodyPosition;
+        document.body.style.top = originalBodyTop;
+        document.body.style.left = originalBodyLeft;
+        document.body.style.right = originalBodyRight;
+        document.body.style.width = originalBodyWidth;
+        document.body.style.overflow = originalBodyOverflow;
+        document.documentElement.style.overflow = originalDocOverflow;
+        window.scrollTo(0, scrollY);
+      };
     }
   }, [isOpen, initialTab]);
 
@@ -643,21 +685,7 @@ export default function EditProfileModal({ isOpen, onClose, currentUser, initial
     }
   }, [currentUser?.id, activeTab, isOpen]);
 
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-      document.documentElement.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
-    };
-  }, [isOpen]);
-
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const getPrivacyIcon = (val: string) => {
     if (val === t("public")) return <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>;
@@ -767,16 +795,39 @@ export default function EditProfileModal({ isOpen, onClose, currentUser, initial
     { label: t("privacyJoinedGroups"), options: [t("public"), t("friendsOnly"), t("private")], state: privacyJoinedGroups, setState: setPrivacyJoinedGroups, key: "privacyJoinedGroups" },
   ];
 
-  return (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60">
-      <div className="bg-white dark:bg-[#242526] w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col h-[85vh] min-h-[600px] max-h-[900px] overflow-hidden animate-in fade-in zoom-in duration-200">
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-0 md:p-4 bg-black/60 overscroll-contain">
+      <div className="bg-white dark:bg-[#242526] w-full max-w-5xl rounded-none md:rounded-2xl shadow-2xl flex flex-col h-[100dvh] md:h-[85vh] md:min-h-[600px] md:max-h-[900px] overflow-hidden overscroll-contain animate-in fade-in zoom-in duration-200">
         
-        {/* Header - Reduced padding */}
-        <div className="flex items-center justify-between px-6 py-2.5 border-b border-gray-200 dark:border-gray-700 shrink-0">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t("title")}</h2>
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 md:py-2.5 border-b border-gray-200 dark:border-gray-700 shrink-0 bg-white dark:bg-[#242526]">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            {/* Back Button on Mobile (only shown when inside a tab) */}
+            {mobileSubTab && (
+              <button 
+                onClick={() => setMobileSubTab(null)}
+                className="md:hidden p-1.5 -ml-1 rounded-full hover:bg-gray-100 dark:hover:bg-[#3A3B3C] text-gray-700 dark:text-gray-200 transition-colors cursor-pointer"
+                aria-label="Back"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            )}
+            <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white truncate">
+              <span className="md:hidden">
+                {mobileSubTab 
+                  ? (TABS.find(t => t.id === mobileSubTab)?.label || t("title")) 
+                  : t("title")}
+              </span>
+              <span className="hidden md:inline">
+                {t("title")}
+              </span>
+            </h2>
+          </div>
           <button 
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-300"
+            className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-300 cursor-pointer"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -788,29 +839,36 @@ export default function EditProfileModal({ isOpen, onClose, currentUser, initial
         <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
           
           {/* Sidebar (Kiri) */}
-          <div className="w-full md:w-[260px] shrink-0 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#1E1E1E] flex flex-col">
+          <div className={`w-full md:w-[260px] shrink-0 border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#1E1E1E] flex flex-col ${mobileSubTab ? 'hidden md:flex' : 'flex flex-1 md:flex-initial'}`}>
             {/* Tabs */}
-            <div className="flex-1 p-3 space-y-1 overflow-y-auto custom-scrollbar">
-              {TABS.map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`w-full text-left px-4 py-2.5 rounded-xl font-semibold text-[13px] transition-all ${
-                    activeTab === tab.id 
-                      ? "bg-[#10B981]/15 text-[#10B981] dark:bg-[#10B981]/10" 
-                      : "text-gray-600 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-[#3A3B3C]"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+            <div className="flex-1 p-3 space-y-1.5 md:space-y-1 overflow-y-auto custom-scrollbar overscroll-contain">
+              {TABS.map(tab => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setActiveTab(tab.id);
+                      setMobileSubTab(tab.id);
+                    }}
+                    className={`w-full flex items-center justify-between px-4 py-3.5 md:py-2.5 rounded-xl font-semibold text-sm md:text-[13px] transition-all cursor-pointer text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#2A2B2C] ${
+                      isActive 
+                        ? "md:bg-[#10B981]/15 md:text-[#10B981] md:dark:bg-[#10B981]/10 md:dark:text-[#10B981]" 
+                        : "md:text-gray-700 md:hover:bg-gray-200/80 md:dark:text-gray-300 md:dark:hover:bg-[#3A3B3C]"
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    <svg className="w-4 h-4 text-gray-400 dark:text-gray-500 md:hidden shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                );
+              })}
             </div>
-
-            
           </div>
 
           {/* Form Content (Kanan) */}
-          <div className="flex-1 overflow-y-auto px-8 py-6 md:px-12 md:py-8 custom-scrollbar bg-white dark:bg-[#242526]">
+          <div className={`flex-1 overflow-y-auto px-4 py-5 sm:px-8 sm:py-6 md:px-12 md:py-8 custom-scrollbar bg-white dark:bg-[#242526] overscroll-contain ${mobileSubTab ? 'block' : 'hidden md:block'}`}>
             
             {/* 1. INTRO */}
             {activeTab === "intro" && (
@@ -1746,6 +1804,7 @@ export default function EditProfileModal({ isOpen, onClose, currentUser, initial
         }}
         onSelectLibraryItem={handleSelectLibraryItem}
       />
-    </div>
+    </div>,
+    document.body
   );
 }

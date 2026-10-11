@@ -143,6 +143,15 @@ export async function updateDisplayName(token: string, userId: string, newDispla
 export async function updateProfileMedia(token: string, userId: string, type: "avatar" | "cover", url: string) {
   if (!verifyToken(token, userId)) return { success: false, error: "Unauthorized" };
   try {
+    // 1. Ambil data profil saat ini untuk mendapatkan URL foto lama
+    const currentProfile = await prisma.profile.findUnique({
+      where: { userId },
+      select: { avatarUrl: true, coverUrl: true }
+    });
+
+    const oldUrl = type === "avatar" ? currentProfile?.avatarUrl : currentProfile?.coverUrl;
+
+    // 2. Simpan URL baru ke database
     const finalUrl = url + (url.includes('?') ? '&' : '?') + `t=${Date.now()}`;
     if (type === "avatar") {
       await prisma.profile.update({
@@ -158,9 +167,72 @@ export async function updateProfileMedia(token: string, userId: string, type: "a
     
     await invalidateProfile(userId);
 
+    // 3. Hapus foto lama di Cloudinary jika ada dan berbeda dengan yang baru
+    if (oldUrl) {
+      const oldClean = oldUrl.split('?')[0];
+      const newClean = url.split('?')[0];
+      if (oldClean !== newClean) {
+        try {
+          const { deleteFromCloudinary, extractCloudinaryPublicId } = await import('@/lib/cloudinary');
+          const oldPublicId = extractCloudinaryPublicId(oldUrl);
+          if (oldPublicId) {
+            await deleteFromCloudinary(oldPublicId, "image");
+          }
+        } catch (err) {
+          console.error("Gagal menghapus media lama dari Cloudinary:", err);
+        }
+      }
+    }
+
     return { success: true, url: finalUrl };
   } catch (error) {
     console.error("Error updating profile media:", error);
+    return { success: false, error: "Database error" };
+  }
+}
+
+export async function deleteProfileMedia(token: string, userId: string, type: "avatar" | "cover") {
+  if (!verifyToken(token, userId)) return { success: false, error: "Unauthorized" };
+  try {
+    // 1. Ambil data profil saat ini untuk mendapatkan URL foto yang akan dihapus
+    const currentProfile = await prisma.profile.findUnique({
+      where: { userId },
+      select: { avatarUrl: true, coverUrl: true }
+    });
+
+    const oldUrl = type === "avatar" ? currentProfile?.avatarUrl : currentProfile?.coverUrl;
+
+    // 2. Kosongkan URL di database
+    if (type === "avatar") {
+      await prisma.profile.update({
+        where: { userId },
+        data: { avatarUrl: null },
+      });
+    } else if (type === "cover") {
+      await prisma.profile.update({
+        where: { userId },
+        data: { coverUrl: null },
+      });
+    }
+
+    await invalidateProfile(userId);
+
+    // 3. Hapus media dari Cloudinary jika merupakan aset Cloudinary
+    if (oldUrl) {
+      try {
+        const { deleteFromCloudinary, extractCloudinaryPublicId } = await import('@/lib/cloudinary');
+        const oldPublicId = extractCloudinaryPublicId(oldUrl);
+        if (oldPublicId) {
+          await deleteFromCloudinary(oldPublicId, "image");
+        }
+      } catch (err) {
+        console.error("Gagal menghapus media profil dari Cloudinary:", err);
+      }
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting profile media:", error);
     return { success: false, error: "Database error" };
   }
 }

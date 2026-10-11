@@ -1030,6 +1030,20 @@
         "loadMoreReplies": "Load more replies",
         "writeReply": "Write a reply..."
     },
+    "profileMediaOptions": {
+        "avatarTitle": "Profile Picture",
+        "coverTitle": "Cover Photo",
+        "viewAvatar": "View Profile Picture",
+        "changeAvatar": "Change Profile Picture",
+        "deleteAvatar": "Delete Profile Picture",
+        "viewCover": "View Cover Photo",
+        "changeCover": "Change Cover Photo",
+        "deleteCover": "Delete Cover Photo",
+        "deleteConfirm": "Are you sure you want to delete this photo?",
+        "deleteSuccess": "Photo deleted successfully",
+        "deleteFailed": "Failed to delete photo",
+        "cancel": "Cancel"
+    },
     "savedPage": {
         "title": "My Collections",
         "subtitle": "Save and manage your and your friends folder collections.",
