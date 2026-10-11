@@ -299,54 +299,12 @@ export function CommentItem({
           <button type="button" aria-label={t("postModal.more") || "Opsi lainnya"} className="absolute right-0 top-0 opacity-0 group-hover/comment:opacity-100 p-1 rounded-full text-gray-500 hover:bg-gray-100 dark:text-[#B0B3B8] dark:hover:bg-[#3A3B3C] transition-all shrink-0">
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg>
           </button>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 flex-wrap pr-6">
             <h4 className="font-semibold text-[13px] text-gray-900 dark:text-[#E4E6EB] cursor-pointer hover:underline" onClick={() => router.push(`/${locale}/p/${comment.author?.username}/${comment.author?.id}`)}>
               {comment.author?.profile?.displayName || comment.author?.username}
             </h4>
-          </div>
-          <p className="text-[14.5px] text-gray-900 dark:text-[#E4E6EB] mt-0.5 whitespace-pre-wrap">{renderCommentContent(comment.content)}</p>
-
-          <div className="flex items-center justify-between w-full mt-1.5">
-            <div className="flex items-center gap-1.5 text-[12.5px] font-medium text-gray-600 dark:text-gray-400">
-              {topReactions.length > 0 && (
-                <div className="flex items-center -space-x-1 z-0 mr-1 cursor-pointer hover:opacity-80">
-                  {topReactions.map((r, i) => (
-                    <ReactionSummaryPopup key={r} targetId={comment.id} targetType="COMMENT" likeCount={likeCount} topReactions={topReactions} filterReactionType={r}>
-                      <div className="w-[16px] h-[16px] rounded-full bg-white dark:bg-[#242526] relative z-10 flex items-center justify-center shadow-sm hover:z-20">
-                        <Image src={REACTION_CONFIG[r].src} alt={r} fill className="object-contain" />
-                      </div>
-                    </ReactionSummaryPopup>
-                  ))}
-                </div>
-              )}
-              {targetComment && (
-                <button onClick={(e) => handleJumpToComment(e, targetComment.id)} aria-label="Lihat target komentar" className="flex items-center gap-1.5 hover:bg-gray-100 dark:hover:bg-[#3A3B3C] px-2 py-1.5 rounded-full transition-colors -ml-2">
-                  <img src="/answer.svg" alt="Answer" className="w-[14px] h-[14px] opacity-60 dark:invert" />
-                </button>
-              )}
-              
-              <ReactionButton 
-                myReaction={isLiked} 
-                onReact={comment.isOptimistic ? () => {} : onLikeClick} 
-                count={likeCount} 
-                hideTooltip={true}
-                containerClassName={`!flex-none ${!targetComment ? '-ml-2' : ''} ${comment.isOptimistic ? 'pointer-events-none opacity-50' : ''}`}
-                className="flex items-center gap-1.5 hover:bg-gray-100 dark:hover:bg-[#3A3B3C] px-2 py-1.5 rounded-full transition-colors bg-transparent"
-              />
-
-              <button 
-                disabled={comment.isOptimistic}
-                onClick={() => {
-                  const parentIdForDB = depth >= 2 ? comment.parentId : comment.id;
-                  handleReplyClick(comment.author?.username, comment.author?.id, comment.author?.profile?.displayName || comment.author?.username, comment.id, parentIdForDB, currentRootId);
-                }} 
-                className={`flex items-center gap-1.5 hover:bg-gray-100 dark:hover:bg-[#3A3B3C] px-3 py-1.5 rounded-full transition-colors ${comment.isOptimistic ? 'pointer-events-none opacity-50' : ''}`}
-              >
-                <img src="/reply.svg" alt="Reply" className="w-[16px] h-[16px] opacity-60 dark:invert" />
-                {t("postModal.reply") || "Balas"}
-              </button>
-            </div>
-            <span className="text-[12px] text-gray-500 dark:text-gray-400 font-normal ml-2 flex items-center gap-1.5">
+            <span className="text-gray-400 dark:text-gray-500 text-[11px] select-none">|</span>
+            <span className="text-[12px] text-gray-500 dark:text-gray-400 font-normal flex items-center gap-1.5">
               {comment.isOptimistic ? (
                 <>
                   <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse inline-block" />
@@ -361,6 +319,47 @@ export function CommentItem({
                 formatPostTime(comment.createdAt, t, locale)
               )}
             </span>
+          </div>
+          <p className="text-[14.5px] text-gray-900 dark:text-[#E4E6EB] mt-0.5 whitespace-pre-wrap">{renderCommentContent(comment.content)}</p>
+
+          <div className="flex items-center gap-1.5 text-[12.5px] font-medium text-gray-600 dark:text-gray-400 mt-1.5">
+            {topReactions.length > 0 && (
+              <div className="flex items-center -space-x-1 z-0 mr-1 cursor-pointer hover:opacity-80">
+                {topReactions.map((r, i) => (
+                  <ReactionSummaryPopup key={r} targetId={comment.id} targetType="COMMENT" likeCount={likeCount} topReactions={topReactions} filterReactionType={r}>
+                    <div className="w-[16px] h-[16px] rounded-full bg-white dark:bg-[#242526] relative z-10 flex items-center justify-center shadow-sm hover:z-20">
+                      <Image src={REACTION_CONFIG[r].src} alt={r} fill className="object-contain" />
+                    </div>
+                  </ReactionSummaryPopup>
+                ))}
+              </div>
+            )}
+            {targetComment && (
+              <button onClick={(e) => handleJumpToComment(e, targetComment.id)} aria-label="Lihat target komentar" className="flex items-center gap-1.5 hover:bg-gray-100 dark:hover:bg-[#3A3B3C] px-2 py-1.5 rounded-full transition-colors -ml-2">
+                <img src="/answer.svg" alt="Answer" className="w-[14px] h-[14px] opacity-60 dark:invert" />
+              </button>
+            )}
+            
+            <ReactionButton 
+              myReaction={isLiked} 
+              onReact={comment.isOptimistic ? () => {} : onLikeClick} 
+              count={likeCount} 
+              hideTooltip={true}
+              containerClassName={`!flex-none ${!targetComment ? '-ml-2' : ''} ${comment.isOptimistic ? 'pointer-events-none opacity-50' : ''}`}
+              className="flex items-center gap-1.5 hover:bg-gray-100 dark:hover:bg-[#3A3B3C] px-2 py-1.5 rounded-full transition-colors bg-transparent"
+            />
+
+            <button 
+              disabled={comment.isOptimistic}
+              onClick={() => {
+                const parentIdForDB = depth >= 2 ? comment.parentId : comment.id;
+                handleReplyClick(comment.author?.username, comment.author?.id, comment.author?.profile?.displayName || comment.author?.username, comment.id, parentIdForDB, currentRootId);
+              }} 
+              className={`flex items-center gap-1.5 hover:bg-gray-100 dark:hover:bg-[#3A3B3C] px-3 py-1.5 rounded-full transition-colors ${comment.isOptimistic ? 'pointer-events-none opacity-50' : ''}`}
+            >
+              <img src="/reply.svg" alt="Reply" className="w-[16px] h-[16px] opacity-60 dark:invert" />
+              {t("postModal.reply") || "Balas"}
+            </button>
           </div>
           </div>
 
