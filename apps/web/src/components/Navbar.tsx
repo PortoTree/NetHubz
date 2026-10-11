@@ -75,6 +75,16 @@ export default function Navbar({
 
   useEffect(() => { setIsMounted(true); }, []);
 
+  // Keep navAvatar in sync with currentUser directly whenever currentUser updates
+  useEffect(() => {
+    if (currentUser?.profile?.avatarUrl !== undefined) {
+      setNavAvatar(currentUser.profile.avatarUrl || null);
+    }
+    if (currentUser?.profile?.displayName || currentUser?.displayName) {
+      setNavDisplayName(currentUser?.profile?.displayName || currentUser?.displayName);
+    }
+  }, [currentUser?.profile?.avatarUrl, currentUser?.profile?.displayName, currentUser?.displayName]);
+
   // Fetch avatar + displayName from DB when currentUser is ready
   useEffect(() => {
     if (!currentUser?.id) return;
@@ -103,22 +113,30 @@ export default function Navbar({
     });
   }, [currentUser?.id, currentUser?.profile?.avatarUrl]);
 
-  // Listen for avatar-updated event dispatched from profile page after crop/upload
+  // Listen for avatar/profile update events dispatched after crop/upload/delete
   useEffect(() => {
     const handleAvatarUpdated = (e: Event) => {
-      const event = e as CustomEvent<{ url: string; type: string }>;
-      if (event.detail.type === "avatar") {
-        setNavAvatar(event.detail.url);
-        if (currentUser?.id) {
-          profileCache.set(currentUser.id, {
-            avatarUrl: event.detail.url,
-            displayName: navDisplayName || profileCache.get(currentUser.id)?.displayName || null
-          });
+      const event = e as CustomEvent<{ url: string | null; type: string }>;
+      if (event.detail && (event.detail.type === "avatar" || event.detail.type === "info")) {
+        if (event.detail.type === "avatar") {
+          setNavAvatar(event.detail.url || null);
+          if (currentUser?.id) {
+            profileCache.set(currentUser.id, {
+              avatarUrl: event.detail.url || null,
+              displayName: navDisplayName || profileCache.get(currentUser.id)?.displayName || null
+            });
+          }
         }
       }
     };
     window.addEventListener("avatar-updated", handleAvatarUpdated);
-    return () => window.removeEventListener("avatar-updated", handleAvatarUpdated);
+    window.addEventListener("profile_updated", handleAvatarUpdated);
+    window.addEventListener("profile-media-updated", handleAvatarUpdated);
+    return () => {
+      window.removeEventListener("avatar-updated", handleAvatarUpdated);
+      window.removeEventListener("profile_updated", handleAvatarUpdated);
+      window.removeEventListener("profile-media-updated", handleAvatarUpdated);
+    };
   }, [currentUser?.id, navDisplayName]);
 
   const fetchNotifs = async (isBackground = false) => {
@@ -669,6 +687,9 @@ export default function Navbar({
                     src={navAvatar ? getOptimizedUrl(navAvatar, "avatar") : "/default-avatar.svg"}
                     alt="Profile"
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).src = "/default-avatar.svg";
+                    }}
                   />
                 )}
               </button>

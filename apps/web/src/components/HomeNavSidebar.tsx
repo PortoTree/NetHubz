@@ -262,6 +262,9 @@ export default function HomeNavSidebar({ activeTab, setActiveTab }: HomeNavSideb
                 src={currentUser?.profile?.avatarUrl ? getOptimizedUrl(currentUser.profile.avatarUrl, "avatar") : "/default-avatar.svg"}
                 alt="Profile"
                 className="w-10 h-10 rounded-full object-cover shrink-0 bg-white dark:bg-[#242526]"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).src = "/default-avatar.svg";
+                }}
               />
               <div className="flex-col min-w-0 hidden group-hover:flex group-[.expanded]:flex">
                 <span className="font-bold text-[14px] text-black dark:text-[#E4E6EB] truncate">
@@ -298,6 +301,9 @@ export default function HomeNavSidebar({ activeTab, setActiveTab }: HomeNavSideb
                         src={currentUser.profile?.avatarUrl ? getOptimizedUrl(currentUser.profile.avatarUrl, "avatar") : "/default-avatar.svg"}
                         alt="Profile"
                         className="w-10 h-10 rounded-full object-cover shrink-0 bg-white dark:bg-[#242526]"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = "/default-avatar.svg";
+                        }}
                       />
                       <div className="flex flex-col min-w-0">
                         <span className="font-bold text-[14px] text-black dark:text-[#E4E6EB] truncate leading-tight">
@@ -327,6 +333,9 @@ export default function HomeNavSidebar({ activeTab, setActiveTab }: HomeNavSideb
                               src={currentUser.profile?.avatarUrl ? getOptimizedUrl(currentUser.profile.avatarUrl, "avatar") : "/default-avatar.svg"}
                               alt="Profile"
                               className="w-8 h-8 rounded-full object-cover shrink-0 bg-white dark:bg-[#242526]"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = "/default-avatar.svg";
+                              }}
                             />
                             <div className="flex flex-col min-w-0">
                               <span className="font-bold text-[13px] text-emerald-700 dark:text-emerald-400 truncate leading-tight">

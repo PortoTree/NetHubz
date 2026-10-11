@@ -15,6 +15,11 @@ export function getOptimizedUrl(
   // If it's not a Cloudinary URL, return as is
   if (!cleanUrl.includes("res.cloudinary.com") || !cleanUrl.includes("/image/upload/")) return cleanUrl;
 
+  // If already transformed with Cloudinary parameters, don't stack transformations
+  if (cleanUrl.includes("/image/upload/c_") || cleanUrl.includes("/image/upload/q_")) {
+    return cleanUrl;
+  }
+
   // Define our standard transformations based on Blueprint
   let transformation = "q_auto,f_auto"; // Default fallback
   

@@ -372,9 +372,24 @@ function ProfilePageContent({
   const [statPage, setStatPage] = useState(1);
   const [groupPage, setGroupPage] = useState(1);
   const [showScrollToTabs, setShowScrollToTabs] = useState(false);
+  const [coverHidden, setCoverHidden] = useState(false);
+  const lastProfileScrollYRef = React.useRef(0);
 
   useEffect(() => {
     const handleScroll = () => {
+      const scrollY = window.scrollY || window.pageYOffset;
+      const prevY = lastProfileScrollYRef.current;
+      const isMobile = window.innerWidth < 768;
+
+      // 1. Jika user scroll ke ATAS atau posisi berada di area profil atas -> LANGSUNG show seketika tanpa delay
+      if (scrollY < prevY || scrollY <= (isMobile ? 450 : 700)) {
+        setCoverHidden(false);
+      } else if (scrollY > (isMobile ? 650 : 900)) {
+        // 2. Hanya hide saat user aktif scroll ke BAWAH dan sudah jauh melewati biodata card
+        setCoverHidden(true);
+      }
+      lastProfileScrollYRef.current = scrollY;
+
       const anchorEl = document.getElementById('profile-tabs-anchor');
       if (anchorEl) {
         const rect = anchorEl.getBoundingClientRect();
@@ -1027,9 +1042,10 @@ function ProfilePageContent({
         }
       `}</style>
 
-      <div className="max-w-[1100px] mx-auto px-0 md:px-8">
-
-        {/* Cover Photo */}
+      {/* GROUP 1: Sampul (Diem di situ / Sticky saat scroll awal, sembunyi otomatis setelah tertutup) */}
+      <div className={`sticky top-[56px] z-0 w-full max-w-[1100px] mx-auto px-0 md:px-8 ${
+        coverHidden ? "opacity-0 pointer-events-none transition-opacity duration-200" : "opacity-100 transition-none"
+      }`}>
         <div className="w-full h-44 sm:h-56 md:h-auto md:aspect-[3/1] rounded-none md:rounded-b-[40px] relative overflow-hidden bg-gray-200 dark:bg-gray-700 shadow-sm">
           {isLoadingProfile ? (
             <div className="w-full h-full bg-gray-300 dark:bg-[#3E4042] animate-pulse" />
@@ -1061,9 +1077,13 @@ function ProfilePageContent({
             </>
           )}
         </div>
+      </div>
 
-        {/* Main Content Grid */}
-        <div className="flex flex-col md:flex-row gap-6 -mt-10 sm:-mt-14 md:-mt-[80px] px-0 md:px-6 relative z-10">
+      {/* GROUP 2: Komponen Profile (Dari card biodata sampai ke bawah, gerak menutupi sampul) */}
+      <div className="relative z-10 w-full bg-[#F3F2EF] dark:bg-[#18191A] border-t border-transparent">
+        <div className="max-w-[1100px] mx-auto px-0 md:px-8">
+          {/* Main Content Grid */}
+          <div className="flex flex-col md:flex-row gap-6 -mt-10 sm:-mt-14 md:-mt-[80px] px-0 md:px-6 relative z-10">
 
           {/* Left Sidebar */}
           <div className="w-full md:w-[320px] shrink-0 flex flex-col gap-0 md:gap-6 relative z-20">
@@ -1388,7 +1408,7 @@ function ProfilePageContent({
           </div>
 
           {/* Right Content Area */}
-          <div className="flex-1 flex flex-col gap-4 md:mt-24 min-w-0 px-3 sm:px-4 md:px-0">
+          <div className="flex-1 flex flex-col gap-4 md:mt-24 min-w-0 px-3 sm:px-4 md:px-0 bg-[#F3F2EF] dark:bg-[#18191A]">
 
             {/* Top Row: Friends & Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-between border-b border-gray-300 dark:border-gray-700 pb-4">
@@ -2391,6 +2411,7 @@ function ProfilePageContent({
           </div>
         </div>
       </div>
+    </div>
 
 
       {/* Detail Modal */}

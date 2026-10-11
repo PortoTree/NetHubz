@@ -66,10 +66,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
             });
           }
           
-          // Only fetch if not cached, to save network and prevent re-render flickering
-          if (!cachedProfile) {
-            fetchProfile(currentUserId);
-          }
+          // Always fetch in background to ensure we never stay on stale/broken cached image
+          fetchProfile(currentUserId);
         }
       } catch (e) {
         console.error("Failed to parse token");
@@ -80,20 +78,26 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
 
     const handleProfileUpdated = (e: any) => {
       if (currentUserId) {
-        if (e.detail && e.detail.type && e.detail.url) {
+        if (e.detail && e.detail.type && (e.detail.url !== undefined)) {
           // Optimistically update the avatar/cover in the state
           setCurrentUser((prev: any) => {
-            if (!prev.profile) return prev;
-            const newProfile = { ...prev.profile };
+            const currentProf = prev?.profile || {};
+            const newProfile = { ...currentProf };
             if (e.detail.type === 'avatar') newProfile.avatarUrl = e.detail.url;
             if (e.detail.type === 'cover') newProfile.coverUrl = e.detail.url;
             
-            // Update cache
+            // Update cache and localStorage
             profileCache.set(currentUserId, newProfile);
+            try {
+              localStorage.setItem("cached_user_profile_" + currentUserId, JSON.stringify(newProfile));
+            } catch (err) {}
             return { ...prev, profile: newProfile };
           });
         } else {
           profileCache.delete(currentUserId);
+          try {
+            localStorage.removeItem("cached_user_profile_" + currentUserId);
+          } catch (err) {}
           // Re-fetch explicitly since it was a data change (e.g., name/bio)
           fetchProfile(currentUserId);
         }
@@ -101,7 +105,13 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     };
     
     window.addEventListener("profile_updated", handleProfileUpdated);
-    return () => window.removeEventListener("profile_updated", handleProfileUpdated);
+    window.addEventListener("avatar-updated", handleProfileUpdated);
+    window.addEventListener("profile-media-updated", handleProfileUpdated);
+    return () => {
+      window.removeEventListener("profile_updated", handleProfileUpdated);
+      window.removeEventListener("avatar-updated", handleProfileUpdated);
+      window.removeEventListener("profile-media-updated", handleProfileUpdated);
+    };
   }, []);
 
   return (

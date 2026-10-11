@@ -252,9 +252,8 @@ export default function BottomNav() {
   const backdropOpacity = openRatio * 0.45;
   const isOpen = snap !== "collapsed" || (isDragging && currentVisH > COLLAPSED_H + 10);
 
-  const avatarSrc = currentUser?.profile?.avatarUrl || profileCache.get(currentUser?.id)?.avatarUrl
-    ? getOptimizedUrl(currentUser?.profile?.avatarUrl || profileCache.get(currentUser?.id)?.avatarUrl, "avatar")
-    : "/default-avatar.svg";
+  const rawAvatar = currentUser?.profile?.avatarUrl ?? profileCache.get(currentUser?.id)?.avatarUrl;
+  const avatarSrc = rawAvatar ? getOptimizedUrl(rawAvatar, "avatar") : "/default-avatar.svg";
 
   return (
     <>
@@ -408,6 +407,9 @@ export default function BottomNav() {
               className={`w-8 h-8 rounded-full object-cover ${
                 tab === "profile" ? "border-2 border-emerald-500" : "border border-transparent"
               }`}
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).src = "/default-avatar.svg";
+              }}
             />
           </button>
         </div>
@@ -532,6 +534,9 @@ export default function BottomNav() {
                         src={avatarSrc}
                         alt="Profile"
                         className="w-9 h-9 rounded-full object-cover shrink-0 ring-1 ring-emerald-500/40 bg-white dark:bg-[#242526]"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = "/default-avatar.svg";
+                        }}
                       />
                       <div className="flex flex-col min-w-0">
                         <span className="font-bold text-[14px] text-emerald-800 dark:text-emerald-400 truncate leading-tight">
@@ -609,6 +614,9 @@ export default function BottomNav() {
                   src={avatarSrc}
                   alt="Avatar"
                   className="w-10 h-10 rounded-full object-cover shrink-0 ring-2 ring-emerald-500/25 bg-white dark:bg-[#242526]"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).src = "/default-avatar.svg";
+                  }}
                 />
                 <div className="flex flex-col min-w-0">
                   <span className="font-bold text-[14px] text-gray-900 dark:text-[#F0F2F5] truncate leading-tight">
