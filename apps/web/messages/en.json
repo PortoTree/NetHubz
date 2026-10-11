@@ -998,7 +998,7 @@
         "allCategories": "All Categories",
         "activeCreators": "Active Creators",
         "activeCreatorsTooltipTitle": "Our active creator system",
-        "activeCreatorsTooltip1": "- Top 3 most liked across all projects (if tied, interaction and comments are prioritized)",
+        "activeCreatorsTooltip1": "- Top 3 most react across all projects (if tied, interaction and comments are prioritized)",
         "activeCreatorsTooltip2": "- Top 4 most projects in the community",
         "activeCreatorsTooltip3": "- 3 random picks from the community with at least one project",
         "searchTitle": "Search",

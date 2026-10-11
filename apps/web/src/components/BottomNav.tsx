@@ -267,7 +267,7 @@ export default function BottomNav() {
             setDragOffset(0);
           }
         }}
-        className={`md:hidden fixed inset-0 bg-black z-40 transition-opacity ${
+        className={`md:hidden fixed inset-0 bg-black z-[60] transition-opacity ${
           isOpen ? "pointer-events-auto" : "pointer-events-none"
         }`}
         style={{
@@ -278,7 +278,7 @@ export default function BottomNav() {
 
       {/* ── BOTTOM SHEET (ANCHORED AT BOTTOM-0, ALWAYS SOLID UNDERNEATH) ────── */}
       <div
-        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-[#242526] select-none rounded-t-2xl border-t border-gray-300 dark:border-[#3E4042]"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-[70] bg-white dark:bg-[#242526] select-none rounded-t-2xl border-t border-gray-300 dark:border-[#3E4042]"
         style={{
           height: `${SHEET_H}px`,
           transform: `translateY(${translateY}px)`,

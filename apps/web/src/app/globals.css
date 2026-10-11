@@ -34,8 +34,12 @@ body {
    6px transparent so no visual "cut" on short pages. Layout is always stable. */
 html {
   overflow-y: scroll;
+  overflow-x: hidden; /* Prevent horizontal scroll that breaks fixed bottom nav */
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 0, 0, 0.25) transparent; /* Firefox */
+}
+body {
+  overflow-x: hidden; /* Extra safety: prevent any element from widening the body */
 }
 html::-webkit-scrollbar {
   width: 6px;
@@ -252,4 +256,12 @@ html.dark::-webkit-scrollbar-thumb:hover {
 #nprogress .bar {
   background: linear-gradient(to right, #10B981, #34D399) !important;
   z-index: 10200 !important; /* Above the transparent header and normal header */
+}
+
+/* Sembunyikan Next.js Dev Indicator badge/capsule agar tidak menutupi navigasi bawah */
+nextjs-portal,
+[data-nextjs-toast],
+div[data-nextjs-dev-indicator],
+#nextjs-dev-indicator {
+  display: none !important;
 }

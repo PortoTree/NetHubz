@@ -229,12 +229,12 @@ const ShowcaseCard = ({ p, locale, t, tHub, CATEGORY_COLORS, getCategoryBadgeCla
   return (
     <div
       key={p.id}
-      className="bg-white dark:bg-[#242526] rounded-[20px] shadow-sm border border-gray-100 dark:border-[#3A3B3C] transition-all hover:shadow-md hover:-translate-y-0.5 flex flex-col md:flex-row min-h-[180px] group/card relative"
+      className="bg-white dark:bg-[#242526] sm:rounded-[20px] sm:shadow-sm sm:border sm:border-gray-100 sm:dark:border-[#3A3B3C] transition-all sm:hover:shadow-md sm:hover:-translate-y-0.5 flex flex-col md:flex-row min-h-0 md:min-h-[180px] group/card relative overflow-hidden"
     >
-      <div className="w-full md:w-[260px] md:shrink-0 relative group/cover cursor-pointer rounded-t-[20px] md:rounded-tr-none md:rounded-l-[20px] overflow-hidden">
-        <div className="absolute top-3 left-3 z-20">
+      <div className="w-full md:w-[260px] md:shrink-0 relative group/cover cursor-pointer sm:rounded-t-2xl md:rounded-tr-none md:rounded-l-[20px] overflow-hidden">
+        <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 z-20">
           {isInteractionLoading ? (
-            <div className="w-[32px] h-[32px] rounded-full bg-white/50 dark:bg-black/50 animate-pulse border border-black/5 dark:border-white/5"></div>
+            <div className="w-[30px] h-[30px] sm:w-[32px] sm:h-[32px] rounded-full bg-white/50 dark:bg-black/50 animate-pulse border border-black/5 dark:border-white/5"></div>
           ) : (
             <button 
               onClick={(e) => {
@@ -250,7 +250,7 @@ const ShowcaseCard = ({ p, locale, t, tHub, CATEGORY_COLORS, getCategoryBadgeCla
               }`}
               title={isSaved ? "Tersimpan" : "Simpan Project"}
             >
-              <svg className="w-5 h-5" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 sm:w-5 sm:h-5" fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={isSaved ? 0 : 2} d={isSaved ? "M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" : "M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"} />
               </svg>
             </button>
@@ -259,13 +259,13 @@ const ShowcaseCard = ({ p, locale, t, tHub, CATEGORY_COLORS, getCategoryBadgeCla
 
         <div 
           onClick={() => { NProgress.start(); router.push(`/${locale}/project/${username}/${p.id}`); }}
-          className="w-full aspect-video md:aspect-auto md:absolute md:inset-0 relative z-0"
+          className="w-full aspect-[16/9] md:aspect-auto md:absolute md:inset-0 relative z-0"
         >
           {cover ? (
             <MediaRenderer url={cover} className="absolute inset-0 w-full h-full object-cover bg-gray-100 dark:bg-[#3A3B3C]" />
           ) : (
             <div className="absolute inset-0 w-full h-full bg-gray-100 dark:bg-[#3A3B3C] flex items-center justify-center text-gray-400">
-              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-10 h-10 sm:w-12 sm:h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
@@ -273,66 +273,66 @@ const ShowcaseCard = ({ p, locale, t, tHub, CATEGORY_COLORS, getCategoryBadgeCla
         </div>
       </div>
 
-      <div className="p-5 flex flex-col flex-grow relative z-10 w-full min-w-0">
-        <div className="flex items-start justify-between gap-3 mb-2">
+      <div className="p-3.5 sm:p-5 flex flex-col flex-grow relative z-10 w-full min-w-0">
+        <div className="flex items-start justify-between gap-2.5 sm:gap-3 mb-1.5 sm:mb-2">
           <div className="flex-1 min-w-0">
             <Link
               href={`/${locale}/project/${username}/${p.id}`}
               onClick={() => NProgress.start()}
-              className="text-gray-900 dark:text-[#E4E6EB] font-bold text-[17px] line-clamp-2 after:absolute after:inset-0 after:z-0 hover:text-purple-600 dark:hover:text-purple-400"
+              className="text-gray-900 dark:text-[#E4E6EB] font-bold text-[15px] sm:text-[17px] leading-snug line-clamp-2 after:absolute after:inset-0 after:z-0 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
             >
               {p.title}
             </Link>
-            <div className="flex flex-wrap items-center gap-1.5 mt-1.5 relative z-10">
+            <div className="flex flex-wrap items-center gap-1.5 mt-1 sm:mt-1.5 relative z-10">
               {p.category && (
-                <span className={getCategoryBadgeClasses(CATEGORY_COLORS[p.category] || "blue")}>
+                <span className={getCategoryBadgeClasses(CATEGORY_COLORS[p.category] || "blue") + " text-[10px] sm:text-[11px] px-2 py-0.5"}>
                   {p.category === "OTHER" ? p.customCategory : t(`cat_${p.category}` as any)}
                 </span>
               )}
               {p.isForSale && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm">
+                <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xs">
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   FOR SALE
                 </span>
               )}
             </div>
           </div>
-          <span className={statusBadgeClass(p.status) + " relative z-10 shrink-0 mt-0.5"}>
+          <span className={statusBadgeClass(p.status) + " relative z-10 shrink-0 text-[10px] sm:text-[11px] px-2 sm:px-2.5 py-0.5 sm:py-1 mt-0.5"}>
             {t(statusKey(p.status))}
           </span>
         </div>
 
-        <p className="text-gray-600 dark:text-[#B0B3B8] text-[13px] whitespace-pre-line line-clamp-3 mb-4 flex-grow">
+        <p className="text-gray-600 dark:text-[#B0B3B8] text-[12px] sm:text-[13px] leading-relaxed whitespace-pre-line line-clamp-2 sm:line-clamp-3 mb-3 sm:mb-4 flex-grow">
           {p.description}
         </p>
 
         <div className="mt-auto">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex flex-wrap gap-1.5">
-              {p.techStack?.length > 0 && p.techStack.slice(0, 4).map((tech: string) => (
+          <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
+            <div className="flex flex-wrap gap-1 sm:gap-1.5">
+              {p.techStack?.length > 0 && p.techStack.slice(0, 3).map((tech: string) => (
                 <span
                   key={tech}
-                  className="px-2 py-0.5 rounded text-[11px] font-medium transition-colors bg-gray-100 text-gray-600 dark:bg-[#3A3B3C] dark:text-[#E4E6EB]"
+                  className="px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-medium transition-colors bg-gray-100 text-gray-600 dark:bg-[#3A3B3C] dark:text-[#E4E6EB]"
                 >
                   {tech}
                 </span>
               ))}
-              {p.techStack?.length > 4 && (
-                <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-[#3A3B3C] dark:text-[#E4E6EB]">
-                  +{p.techStack.length - 4}
+              {p.techStack?.length > 3 && (
+                <span className="px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-[#3A3B3C] dark:text-[#E4E6EB]">
+                  +{p.techStack.length - 3}
                 </span>
               )}
             </div>
             
             {/* React Summary Popup - Aligned right */}
-            <div className="flex items-center gap-1.5 cursor-pointer hover:underline text-[#65676B] dark:text-[#B0B3B8] text-[15px] relative z-10">
+            <div className="flex items-center gap-1 sm:gap-1.5 cursor-pointer hover:underline text-[#65676B] dark:text-[#B0B3B8] text-[13px] sm:text-[15px] relative z-10 shrink-0">
               {isInteractionLoading ? (
                 <div className="flex items-center gap-1.5">
                   <div className="flex -space-x-1">
-                    <div className="w-[18px] h-[18px] rounded-full bg-gray-200 dark:bg-[#3A3B3C] animate-pulse relative z-10 border-2 border-white dark:border-[#242526]"></div>
-                    <div className="w-[18px] h-[18px] rounded-full bg-gray-200 dark:bg-[#3A3B3C] animate-pulse relative z-0 border-2 border-white dark:border-[#242526]"></div>
+                    <div className="w-[16px] h-[16px] sm:w-[18px] sm:h-[18px] rounded-full bg-gray-200 dark:bg-[#3A3B3C] animate-pulse relative z-10 border-2 border-white dark:border-[#242526]"></div>
+                    <div className="w-[16px] h-[16px] sm:w-[18px] sm:h-[18px] rounded-full bg-gray-200 dark:bg-[#3A3B3C] animate-pulse relative z-0 border-2 border-white dark:border-[#242526]"></div>
                   </div>
-                  <div className="w-4 h-4 bg-gray-200 dark:bg-[#3A3B3C] animate-pulse rounded"></div>
+                  <div className="w-3.5 h-3.5 bg-gray-200 dark:bg-[#3A3B3C] animate-pulse rounded"></div>
                 </div>
               ) : (
                 <>
@@ -340,66 +340,65 @@ const ShowcaseCard = ({ p, locale, t, tHub, CATEGORY_COLORS, getCategoryBadgeCla
                     {topReactions.length > 0 ? (
                       topReactions.slice(0, 3).map((r) => (
                         <ReactionSummaryPopup key={r} targetId={p.id} targetType="PROJECT" likeCount={likeCount} topReactions={topReactions} filterReactionType={r}>
-                          <div className="w-[18px] h-[18px] rounded-full bg-white dark:bg-[#242526] relative z-10 flex items-center justify-center shadow-sm hover:z-20 hover:opacity-80 transition-opacity">
+                          <div className="w-[16px] h-[16px] sm:w-[18px] sm:h-[18px] rounded-full bg-white dark:bg-[#242526] relative z-10 flex items-center justify-center shadow-xs hover:z-20 hover:opacity-80 transition-opacity">
                              <Image src={REACTION_CONFIG[r].src} alt={r} fill className="object-contain" />
                           </div>
                         </ReactionSummaryPopup>
                       ))
                     ) : likeCount > 0 ? (
                       <ReactionSummaryPopup targetId={p.id} targetType="PROJECT" likeCount={likeCount} topReactions={topReactions}>
-                        <div className="w-[18px] h-[18px] rounded-full bg-blue-500 flex items-center justify-center shadow-sm hover:z-20 hover:opacity-80 transition-opacity">
-                          <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <div className="w-[16px] h-[16px] sm:w-[18px] sm:h-[18px] rounded-full bg-blue-500 flex items-center justify-center shadow-xs hover:z-20 hover:opacity-80 transition-opacity">
+                          <svg className="w-2 sm:w-2.5 h-2 sm:h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
                           </svg>
                         </div>
                       </ReactionSummaryPopup>
                     ) : null}
                   </div>
-                  {likeCount > 0 && <span onClick={(e) => { e.stopPropagation(); NProgress.start(); router.push(`/${locale}/project/${username}/${p.id}`); }}>{likeCount}</span>}
+                  {likeCount > 0 && <span className="font-medium text-[12px] sm:text-[14px]" onClick={(e) => { e.stopPropagation(); NProgress.start(); router.push(`/${locale}/project/${username}/${p.id}`); }}>{likeCount}</span>}
                 </>
               )}
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-[#3A3B3C]">
-            <Link href={`/${locale}/project/${username}`} className="flex items-center gap-2.5 group/user relative z-10">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt={displayName} className="w-8 h-8 rounded-full object-cover shrink-0" />
-              ) : (
-                <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-[#3A3B3C] shrink-0 flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold text-sm">
-                  {displayName[0]?.toUpperCase()}
-                </div>
-              )}
-              <div className="flex flex-col">
-                <span className="text-[13px] font-semibold text-gray-700 dark:text-[#E4E6EB] group-hover/user:text-purple-600 dark:group-hover/user:text-purple-400 transition-colors leading-tight">
-                  {tHub("userProjects", { name: displayName })}
+          <div className="flex items-center justify-between pt-2.5 sm:pt-3 border-t border-gray-100 dark:border-[#3A3B3C] gap-2">
+            <Link href={`/${locale}/project/${username}`} className="flex items-center gap-2 group/user relative z-10 min-w-0">
+              <img
+                src={avatarUrl || "/default-avatar.svg"}
+                alt={displayName}
+                onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/default-avatar.svg"; }}
+                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover shrink-0 border border-gray-100 dark:border-[#3A3B3C]"
+              />
+              <div className="flex flex-col min-w-0">
+                <span className="text-[12px] sm:text-[13px] font-semibold text-gray-700 dark:text-[#E4E6EB] group-hover/user:text-purple-600 dark:group-hover/user:text-purple-400 transition-colors leading-tight truncate max-w-[100px] xs:max-w-[140px] sm:max-w-none">
+                  {displayName}
                 </span>
-                <span className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                <span className="text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 truncate">
                   @{username}
                 </span>
               </div>
             </Link>
 
-            <div className="flex items-center gap-3.5 relative z-10" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-1 sm:gap-2.5 relative z-10 shrink-0" onClick={(e) => e.stopPropagation()}>
               {isInteractionLoading ? (
-                <div className="w-[84px] h-[18px] bg-gray-200 dark:bg-[#3A3B3C] animate-pulse rounded"></div>
+                <div className="w-[60px] sm:w-[84px] h-[18px] bg-gray-200 dark:bg-[#3A3B3C] animate-pulse rounded"></div>
               ) : (
-                <ReactionButton myReaction={myReaction} onReact={handleLike} count={0} containerClassName="!flex-none" className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-purple-600 dark:text-gray-400 dark:hover:bg-[#3A3B3C] dark:hover:text-purple-400 transition-colors font-medium text-[13px] bg-transparent" />
+                <ReactionButton myReaction={myReaction} onReact={handleLike} count={0} containerClassName="!flex-none" className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-purple-600 dark:text-gray-400 dark:hover:bg-[#3A3B3C] dark:hover:text-purple-400 transition-colors font-medium text-[11px] sm:text-[13px] bg-transparent" />
               )}
               
-              <Link href={`/${locale}/project/${username}/${p.id}#comments`} className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-purple-600 dark:text-gray-400 dark:hover:bg-[#3A3B3C] dark:hover:text-purple-400 transition-colors font-medium text-[13px] bg-transparent">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-                {t("comment")}
+              <Link href={`/${locale}/project/${username}/${p.id}#comments`} className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-purple-600 dark:text-gray-400 dark:hover:bg-[#3A3B3C] dark:hover:text-purple-400 transition-colors font-medium text-[11px] sm:text-[13px] bg-transparent">
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                <span className="hidden xs:inline">{t("comment")}</span>
                 {isInteractionLoading ? (
-                  <div className="w-3 h-4 bg-gray-200 dark:bg-[#3A3B3C] animate-pulse rounded ml-0.5"></div>
+                  <div className="w-3 h-3.5 bg-gray-200 dark:bg-[#3A3B3C] animate-pulse rounded ml-0.5"></div>
                 ) : commentCount > 0 ? (
-                  <span className="ml-0.5 text-gray-400 dark:text-gray-500">{commentCount}</span>
+                  <span className="ml-0.5 text-gray-400 dark:text-gray-500 font-semibold">{commentCount}</span>
                 ) : null}
               </Link>
               
-              <button onClick={handleShare} className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-purple-600 dark:text-gray-400 dark:hover:bg-[#3A3B3C] dark:hover:text-purple-400 transition-colors font-medium text-[13px] bg-transparent">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-                {t("share")}
+              <button onClick={handleShare} className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-purple-600 dark:text-gray-400 dark:hover:bg-[#3A3B3C] dark:hover:text-purple-400 transition-colors font-medium text-[11px] sm:text-[13px] bg-transparent">
+                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                <span className="hidden xs:inline">{t("share")}</span>
               </button>
             </div>
           </div>
@@ -431,6 +430,7 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
   const [search, setSearch] = useState("");
   const [activeStatus, setActiveStatus] = useState("ALL");
   const [showFilter, setShowFilter] = useState(false);
+  const [showCreatorsTooltip, setShowCreatorsTooltip] = useState(false);
   const [activeCategory, setActiveCategory] = useState("ALL");
   const [showStickyCategories, setShowStickyCategories] = useState(false);
   const [isScrolledPastHero, setIsScrolledPastHero] = useState(false);
@@ -707,18 +707,18 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
     ({ RELEASED: "statusReleased", IN_PROGRESS: "statusInProgress", OPEN_SOURCE: "statusOpenSource", SEARCHING_TEAM: "statusSearchingTeam" } as Record<string, string>)[status] || "statusReleased";
 
   return (
-    <div className="flex flex-col gap-6 w-full pb-16">
+    <div className="flex flex-col gap-4 sm:gap-6 w-full pb-16 overflow-x-hidden">
       {title && subtitle && (
-        <div className="flex items-end justify-between mb-2">
+        <div className="flex items-end justify-between mb-1 sm:mb-2 px-3 lg:px-0">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-[#E4E6EB]">{title}</h1>
-            <p className="text-gray-500 dark:text-[#B0B3B8] text-[14px] mt-1">{subtitle}</p>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-[#E4E6EB] tracking-tight">{title}</h1>
+            <p className="text-gray-500 dark:text-[#B0B3B8] text-xs sm:text-[14px] mt-1 line-clamp-2">{subtitle}</p>
           </div>
         </div>
       )}
 
       {/* HERO CATEGORIES CAROUSEL */}
-      <div ref={carouselRef} className="flex gap-3 overflow-x-auto pb-4 pt-2 px-1 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] scroll-smooth">
+      <div ref={carouselRef} className="flex gap-2.5 sm:gap-3 overflow-x-auto pb-3 sm:pb-4 pt-1 sm:pt-2 px-3 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] scroll-smooth max-w-full">
         {categories.map((c) => {
           const count = projects.filter((p) => p.category === c.key || (!p.category && c.key === "WEB_DEV")).length;
           const style = catColors[c.color] || catColors.slate;
@@ -726,16 +726,16 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
             <button
               key={c.key}
               onClick={() => setActiveCategory(activeCategory === c.key ? "ALL" : c.key)}
-              className={`shrink-0 w-[120px] snap-start flex flex-col items-center justify-center p-4 rounded-2xl border transition-all relative ${activeCategory === c.key
+              className={`shrink-0 w-[105px] sm:w-[120px] snap-start flex flex-col items-center justify-center p-3 sm:p-4 rounded-xl sm:rounded-2xl border transition-all relative ${activeCategory === c.key
                 ? style.activeCard + " translate-y-[2px]"
                 : style.inactiveCard + " hover:-translate-y-1 hover:shadow-md transition-all shadow-sm"
                 }`}
             >
-              <div className={`mb-3 p-2.5 rounded-full transition-colors shadow-sm ${activeCategory === c.key ? style.activeIcon : style.inactiveIcon}`}>
+              <div className={`mb-2 sm:mb-3 p-2 sm:p-2.5 rounded-full transition-colors shadow-xs ${activeCategory === c.key ? style.activeIcon : style.inactiveIcon}`}>
                 {c.icon}
               </div>
-              <span className="text-[12px] font-bold text-center leading-tight tracking-wide mb-1">{c.label}</span>
-              <span className="text-[10px] font-medium opacity-70">{count} project</span>
+              <span className="text-[11px] sm:text-[12px] font-bold text-center leading-tight tracking-wide mb-0.5 sm:mb-1">{c.label}</span>
+              <span className="text-[9px] sm:text-[10px] font-medium opacity-70">{count} project</span>
             </button>
           );
         })}
@@ -746,10 +746,10 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
         <div className="flex-1 min-w-0">
 
           {/* STATIC HEADER (Only visible when at top, NO EXPAND TRIGGER) */}
-          <div ref={staticHeaderRef} className="bg-white/90 dark:bg-[#242526]/90 backdrop-blur-md px-5 py-3.5 mb-6 border border-gray-200 dark:border-[#4E4F50] shadow-sm rounded-[28px] opacity-100 transition-opacity">
+          <div ref={staticHeaderRef} className="px-3 py-2 mb-3 sm:bg-white/90 sm:dark:bg-[#242526]/90 sm:backdrop-blur-md sm:px-5 sm:py-3.5 sm:mb-6 sm:border sm:border-gray-200 sm:dark:border-[#4E4F50] sm:shadow-sm sm:rounded-[28px] opacity-100 transition-opacity">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <h2 className="text-[15px] font-bold text-gray-800 dark:text-[#E4E6EB] ml-1">
+              <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                <h2 className="text-[13px] sm:text-[15px] font-bold text-gray-800 dark:text-[#E4E6EB] ml-0.5 sm:ml-1 truncate">
                   {tHub("categoryTitle")} <span className="text-purple-600 dark:text-purple-400">{activeCategory === "ALL" ? tHub("allCategories") : categories.find(c => c.key === activeCategory)?.label}</span>
                 </h2>
                 {activeCategory !== "ALL" && (
@@ -758,14 +758,14 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                       e.stopPropagation();
                       setActiveCategory("ALL");
                     }}
-                    className="w-5 h-5 rounded-full bg-gray-100 dark:bg-[#3A3B3C] text-gray-500 dark:text-gray-400 flex items-center justify-center hover:bg-red-100 hover:text-red-500 dark:hover:bg-red-500/20 dark:hover:text-red-400 transition-colors"
+                    className="w-5 h-5 shrink-0 rounded-full bg-gray-100 dark:bg-[#3A3B3C] text-gray-500 dark:text-gray-400 flex items-center justify-center hover:bg-red-100 hover:text-red-500 dark:hover:bg-red-500/20 dark:hover:text-red-400 transition-colors"
                     title="Reset Category"
                   >
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                   </button>
                 )}
               </div>
-              <div className="flex gap-2">
+              <div className="hidden sm:flex gap-2 shrink-0">
                 <button
                   onClick={() => carouselRef.current?.scrollBy({ left: -300, behavior: 'smooth' })}
                   className="w-8 h-8 rounded-full bg-white dark:bg-[#3A3B3C] border border-gray-200 dark:border-[#535455] shadow-[0_3px_0_0_#d1d5db] dark:shadow-[0_3px_0_0_#1a1a1a] flex items-center justify-center text-gray-700 dark:text-[#E4E6EB] hover:bg-gray-200 dark:hover:bg-[#4E4F50] active:shadow-none active:translate-y-[3px] transition-all"
@@ -785,13 +785,13 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
 
           {/* CLONED FLOATING HEADER (Appears on scroll, WITH EXPAND TRIGGER) */}
           <div className={`fixed top-14 left-0 right-0 z-40 pointer-events-none flex justify-center ${isScrolledPastHero ? "transition-transform duration-300 translate-y-0" : "transition-none -translate-y-full"}`}>
-            <div className="max-w-[1200px] w-full px-4 flex gap-6">
+            <div className="max-w-[1200px] w-full px-3 sm:px-4 flex gap-6">
               {/* Left Column matching */}
               <div className="flex-1 min-w-0 pointer-events-auto">
-                <div className="bg-white/95 dark:bg-[#242526]/95 backdrop-blur-md px-5 py-3.5 border border-gray-200 dark:border-[#4E4F50] shadow-sm rounded-[28px] mt-4">
+                <div className="bg-white/95 dark:bg-[#242526]/95 backdrop-blur-md px-3.5 sm:px-5 py-2.5 sm:py-3.5 border border-gray-200 dark:border-[#4E4F50] shadow-sm rounded-2xl sm:rounded-[28px] mt-2 sm:mt-4">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <h2 className="text-[15px] font-bold text-gray-800 dark:text-[#E4E6EB] ml-1">
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                      <h2 className="text-[13px] sm:text-[15px] font-bold text-gray-800 dark:text-[#E4E6EB] ml-0.5 sm:ml-1 truncate">
                         {tHub("categoryTitle")} <span className="text-purple-600 dark:text-purple-400">{activeCategory === "ALL" ? tHub("allCategories") : categories.find(c => c.key === activeCategory)?.label}</span>
                       </h2>
                       {activeCategory !== "ALL" && (
@@ -800,20 +800,20 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                             e.stopPropagation();
                             setActiveCategory("ALL");
                           }}
-                          className="w-5 h-5 rounded-full bg-gray-100 dark:bg-[#3A3B3C] text-gray-500 dark:text-gray-400 flex items-center justify-center hover:bg-red-100 hover:text-red-500 dark:hover:bg-red-500/20 dark:hover:text-red-400 transition-colors"
+                          className="w-5 h-5 shrink-0 rounded-full bg-gray-100 dark:bg-[#3A3B3C] text-gray-500 dark:text-gray-400 flex items-center justify-center hover:bg-red-100 hover:text-red-500 dark:hover:bg-red-500/20 dark:hover:text-red-400 transition-colors"
                           title="Reset Category"
                         >
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                       )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1.5 sm:gap-2 shrink-0">
                       {showStickyCategories && (
                         <button
                           onClick={() => setShowStickyCategories(false)}
-                          className="w-8 h-8 rounded-full bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 flex items-center justify-center text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors mr-1"
+                          className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 flex items-center justify-center text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors mr-0.5 sm:mr-1"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                          <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                         </button>
                       )}
                       <button
@@ -821,25 +821,25 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                           if (!showStickyCategories) setShowStickyCategories(true);
                           else stickyCarouselRef.current?.scrollBy({ left: -300, behavior: 'smooth' });
                         }}
-                        className="w-8 h-8 rounded-full bg-white dark:bg-[#3A3B3C] border border-gray-200 dark:border-[#535455] shadow-[0_3px_0_0_#d1d5db] dark:shadow-[0_3px_0_0_#1a1a1a] flex items-center justify-center text-gray-700 dark:text-[#E4E6EB] hover:bg-gray-200 dark:hover:bg-[#4E4F50] active:shadow-none active:translate-y-[3px] transition-all"
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white dark:bg-[#3A3B3C] border border-gray-200 dark:border-[#535455] shadow-[0_2px_0_0_#d1d5db] sm:shadow-[0_3px_0_0_#d1d5db] dark:shadow-[0_2px_0_0_#1a1a1a] flex items-center justify-center text-gray-700 dark:text-[#E4E6EB] hover:bg-gray-200 dark:hover:bg-[#4E4F50] active:shadow-none active:translate-y-[2px] transition-all"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
+                        <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
                       </button>
                       <button
                         onClick={() => {
                           if (!showStickyCategories) setShowStickyCategories(true);
                           else stickyCarouselRef.current?.scrollBy({ left: 300, behavior: 'smooth' });
                         }}
-                        className="w-8 h-8 rounded-full bg-white dark:bg-[#3A3B3C] border border-gray-200 dark:border-[#535455] shadow-[0_3px_0_0_#d1d5db] dark:shadow-[0_3px_0_0_#1a1a1a] flex items-center justify-center text-gray-700 dark:text-[#E4E6EB] hover:bg-gray-200 dark:hover:bg-[#4E4F50] active:shadow-none active:translate-y-[3px] transition-all"
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white dark:bg-[#3A3B3C] border border-gray-200 dark:border-[#535455] shadow-[0_2px_0_0_#d1d5db] sm:shadow-[0_3px_0_0_#d1d5db] dark:shadow-[0_2px_0_0_#1a1a1a] flex items-center justify-center text-gray-700 dark:text-[#E4E6EB] hover:bg-gray-200 dark:hover:bg-[#4E4F50] active:shadow-none active:translate-y-[2px] transition-all"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+                        <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
                       </button>
                     </div>
                   </div>
 
-                  <div className={`grid transition-all duration-300 ease-in-out ${showStickyCategories ? "grid-rows-[1fr] opacity-100 mt-4" : "grid-rows-[0fr] opacity-0 mt-0"}`}>
+                  <div className={`grid transition-all duration-300 ease-in-out ${showStickyCategories ? "grid-rows-[1fr] opacity-100 mt-3 sm:mt-4" : "grid-rows-[0fr] opacity-0 mt-0"}`}>
                     <div className="overflow-hidden">
-                      <div ref={stickyCarouselRef} className="flex gap-3 overflow-x-auto pb-4 pt-1 px-1 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] scroll-smooth">
+                      <div ref={stickyCarouselRef} className="flex gap-2.5 sm:gap-3 overflow-x-auto pb-3 sm:pb-4 pt-1 px-1 snap-x snap-mandatory [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] scroll-smooth max-w-full">
                         {categories.map((c) => {
                           const count = projects.filter((p) => p.category === c.key || (!p.category && c.key === "WEB_DEV")).length;
                           const style = catColors[c.color] || catColors.slate;
@@ -847,16 +847,16 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                             <button
                               key={c.key + "-fixed"}
                               onClick={() => setActiveCategory(activeCategory === c.key ? "ALL" : c.key)}
-                              className={`shrink-0 w-[120px] snap-start flex flex-col items-center justify-center p-4 rounded-2xl border transition-all relative ${activeCategory === c.key
+                              className={`shrink-0 w-[105px] sm:w-[120px] snap-start flex flex-col items-center justify-center p-3 sm:p-4 rounded-xl sm:rounded-2xl border transition-all relative ${activeCategory === c.key
                                 ? style.activeCard + " translate-y-[2px]"
                                 : style.inactiveCard + " hover:-translate-y-1 hover:shadow-md transition-all shadow-sm"
                                 }`}
                             >
-                              <div className={`mb-3 p-2.5 rounded-full transition-colors shadow-sm ${activeCategory === c.key ? style.activeIcon : style.inactiveIcon}`}>
+                              <div className={`mb-2 sm:mb-3 p-2 sm:p-2.5 rounded-full transition-colors shadow-xs ${activeCategory === c.key ? style.activeIcon : style.inactiveIcon}`}>
                                 {c.icon}
                               </div>
-                              <span className="text-[12px] font-bold text-center leading-tight tracking-wide mb-1">{c.label}</span>
-                              <span className="text-[10px] font-medium opacity-70">{count} project</span>
+                              <span className="text-[11px] sm:text-[12px] font-bold text-center leading-tight tracking-wide mb-0.5 sm:mb-1">{c.label}</span>
+                              <span className="text-[9px] sm:text-[10px] font-medium opacity-70">{count} project</span>
                             </button>
                           );
                         })}
@@ -870,16 +870,247 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
             </div>
           </div>
 
+          {/* MOBILE SEARCH & FILTER BAR (Only on mobile/tablet < lg) */}
+          <div className="lg:hidden flex flex-col gap-3 mb-5 px-3">
+            {/* Search Input Mobile */}
+            <div className="relative">
+              <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={tHub("searchPlaceholder")}
+                className="w-full pl-10 pr-9 py-2.5 rounded-xl bg-white dark:bg-[#242526] text-gray-900 dark:text-[#E4E6EB] text-[14px] outline-none border border-gray-200 dark:border-[#4E4F50] focus:border-purple-400 dark:focus:border-purple-500 transition-colors placeholder:text-gray-400 shadow-sm"
+              />
+              {search && (
+                <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {/* Status Filter Chips (Horizontal Scrollable) */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 px-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden max-w-full">
+              {statusFilters.map((f) => (
+                <button
+                  key={f.key + "-mobile"}
+                  onClick={() => setActiveStatus(f.key)}
+                  className={`px-3 py-1.5 rounded-full text-[12px] font-semibold whitespace-nowrap transition-all shrink-0 ${
+                    activeStatus === f.key
+                      ? "bg-purple-600 text-white shadow-sm"
+                      : "bg-white dark:bg-[#242526] text-gray-600 dark:text-[#E4E6EB] border border-gray-200 dark:border-[#3A3B3C] hover:bg-gray-50 dark:hover:bg-[#3A3B3C]/50"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Mobile Creators Section */}
+            {search.trim() ? (
+              /* ---- Search mode: show matching users ---- */
+              <div>
+                <p className="text-[13px] font-bold text-gray-500 dark:text-[#B0B3B8] uppercase tracking-wide px-1 mb-2">
+                  {tHub("searchResultsTitle")} ({searchedUsers.length})
+                </p>
+                {searchedUsers.length === 0 ? (
+                  <div className="flex flex-col items-center gap-2 py-4 px-3 text-center">
+                    <svg className="w-8 h-8 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <p className="text-[12px] text-gray-400 dark:text-gray-500 leading-relaxed">
+                      {tHub("searchNoUser")}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1 max-h-[320px] overflow-y-auto sidebar-scrollbar pr-0.5">
+                    {searchedUsers.map((user) => (
+                      <Link
+                        key={user.username + "-m-search"}
+                        href={`/${locale}/project/${user.username}`}
+                        className="relative flex items-center gap-3 p-2 rounded-xl border border-transparent transition-all group/creator hover:bg-gray-100 dark:hover:bg-[#3A3B3C]/50 overflow-hidden"
+                      >
+                        <div className="relative shrink-0 flex items-center">
+                          {user.avatarUrl ? (
+                            <img
+                              src={user.avatarUrl}
+                              alt={user.displayName}
+                              onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/default-avatar.svg"; }}
+                              className="w-10 h-10 rounded-full object-cover relative z-10"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-[#3A3B3C] flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold text-[15px] relative z-10">
+                              {user.displayName[0]?.toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-col min-w-0 flex-grow relative z-10">
+                          <div className="flex items-center w-full">
+                            <span className="text-[13px] font-bold text-gray-800 dark:text-[#E4E6EB] group-hover/creator:text-purple-600 dark:group-hover/creator:text-purple-400 truncate leading-tight transition-colors">
+                              {tHub("userProjects", { name: user.displayName })}
+                            </span>
+                            {user.isPopular && (
+                              <img
+                                src="/red-elektro.gif"
+                                alt="Popular Electro"
+                                className="h-[25px] w-auto shrink-0 pointer-events-none mix-blend-screen ml-1 -translate-y-1"
+                              />
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between mt-0.5 w-full">
+                            <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 truncate pr-2">
+                              @{user.username}
+                            </span>
+                            <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-[10px] font-medium shrink-0 opacity-70 group-hover/creator:opacity-100 transition-opacity">
+                              <div className="flex items-center gap-0.5" title="Projects">
+                                <svg className="w-[11px] h-[11px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                                {user.totalProjects}
+                              </div>
+                              <div className="flex items-center gap-0.5" title="Reactions">
+                                <img src="/react.svg" alt="Reactions" className="w-[11px] h-[11px] opacity-70 dark:invert" />
+                                {user.totalLikes}
+                              </div>
+                              <div className="flex items-center gap-0.5" title="Comments">
+                                <svg className="w-[11px] h-[11px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                                {user.totalComments}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              activeCreators.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-1.5 px-1 mb-2 relative group/info">
+                    <p className="text-[13px] font-bold text-gray-500 dark:text-[#B0B3B8] uppercase tracking-wide">
+                      {tHub("activeCreators")}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowCreatorsTooltip(prev => !prev);
+                      }}
+                      className="p-1 -m-1 text-gray-400 hover:text-purple-500 cursor-pointer rounded-full transition-colors focus:outline-none"
+                      title={tHub("activeCreatorsTooltipTitle")}
+                      aria-label="Info Kreator Aktif"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </button>
+
+                    {showCreatorsTooltip && (
+                      <div className="fixed inset-0 z-40" onClick={() => setShowCreatorsTooltip(false)} />
+                    )}
+
+                    <div className={`absolute left-0 top-full mt-1.5 w-[280px] max-w-[calc(100vw-2.5rem)] bg-white dark:bg-[#242526] text-gray-700 dark:text-[#E4E6EB] text-[12px] rounded-xl border border-gray-200 dark:border-[#3A3B3C] shadow-xl p-3 z-50 transition-all ${
+                      showCreatorsTooltip 
+                        ? "opacity-100 visible pointer-events-auto" 
+                        : "opacity-0 invisible pointer-events-none group-hover/info:opacity-100 group-hover/info:visible"
+                    }`}>
+                      <div className="flex items-center justify-between mb-1.5 pb-1 border-b border-gray-100 dark:border-[#3A3B3C]">
+                        <p className="font-bold text-gray-800 dark:text-[#E4E6EB] text-[13px]">{tHub("activeCreatorsTooltipTitle")}</p>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowCreatorsTooltip(false);
+                          }}
+                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-0.5 rounded transition-colors"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                      <ul className="flex flex-col gap-1.5 text-[11px] font-medium text-gray-600 dark:text-[#B0B3B8] leading-relaxed text-left whitespace-normal break-words">
+                        <li>{tHub("activeCreatorsTooltip1")}</li>
+                        <li>{tHub("activeCreatorsTooltip2")}</li>
+                        <li>{tHub("activeCreatorsTooltip3")}</li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1 max-h-[320px] overflow-y-auto sidebar-scrollbar pr-0.5">
+                    {activeCreators.map((creator) => (
+                      <Link
+                        key={creator.username + "-m-creator"}
+                        href={`/${locale}/project/${creator.username}`}
+                        className="relative flex items-center gap-3 p-2 rounded-xl border border-transparent transition-all group/creator hover:bg-gray-100 dark:hover:bg-[#3A3B3C]/50 overflow-hidden"
+                      >
+                        <div className="relative shrink-0 flex items-center">
+                          {creator.avatarUrl ? (
+                            <img
+                              src={creator.avatarUrl}
+                              alt={creator.displayName}
+                              onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/default-avatar.svg"; }}
+                              className="w-10 h-10 rounded-full object-cover relative z-10"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-[#3A3B3C] flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold text-[15px] relative z-10">
+                              {creator.displayName[0]?.toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex flex-col min-w-0 flex-grow relative z-10">
+                          <div className="flex items-center w-full">
+                            <span className="text-[13px] font-bold text-gray-800 dark:text-[#E4E6EB] group-hover/creator:text-purple-600 dark:group-hover/creator:text-purple-400 truncate leading-tight transition-colors">
+                              {tHub("userProjects", { name: creator.displayName })}
+                            </span>
+                            {creator.isPopular && (
+                              <img
+                                src="/red-elektro.gif"
+                                alt="Popular Electro"
+                                className="h-[25px] w-auto shrink-0 pointer-events-none mix-blend-screen ml-1 -translate-y-1"
+                              />
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between mt-0.5 w-full">
+                            <span className="text-[11px] font-medium text-gray-500 dark:text-gray-400 truncate pr-2">
+                              @{creator.username}
+                            </span>
+                            <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-[10px] font-medium shrink-0 opacity-70 group-hover/creator:opacity-100 transition-opacity">
+                              <div className="flex items-center gap-0.5" title="Projects">
+                                <svg className="w-[11px] h-[11px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                                {creator.totalProjects}
+                              </div>
+                              <div className="flex items-center gap-0.5" title="Reactions">
+                                <img src="/react.svg" alt="Reactions" className="w-[11px] h-[11px] opacity-70 dark:invert" />
+                                {creator.totalLikes}
+                              </div>
+                              <div className="flex items-center gap-0.5" title="Comments">
+                                <svg className="w-[11px] h-[11px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                                {creator.totalComments}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )
+            )}
+          </div>
+
 
           {filtered.length === 0 ? (
-            <div className="text-center py-20 bg-white dark:bg-[#242526] rounded-2xl border border-gray-100 dark:border-[#3A3B3C]">
+            <div className="text-center py-20 bg-white dark:bg-[#242526] sm:rounded-2xl sm:border sm:border-gray-100 sm:dark:border-[#3A3B3C]">
               <svg className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <p className="text-gray-500 dark:text-[#B0B3B8] font-medium">{tHub("noResults")}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-5">
+            <div className="grid grid-cols-1 gap-0 sm:gap-5 divide-y-4 divide-[#ADADAD] dark:divide-[#E0E0E0] sm:divide-y-0">
               {filtered.map((p: any) => (
                 <ShowcaseCard 
                   key={p.id} 
@@ -898,7 +1129,7 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
         </div>
 
         {/* RIGHT: Search & Filter Sidebar */}
-        <div className="w-[300px] shrink-0 flex flex-col self-start sticky top-16 z-20 max-h-[calc(100vh-4.5rem)] pb-12">
+        <div className="hidden lg:flex w-[300px] shrink-0 flex-col self-start sticky top-16 z-20 max-h-[calc(100vh-4.5rem)] pb-12">
           <div className="relative shrink-0 pb-4 z-[60]">
             <div className="flex items-center justify-between mb-2">
               <p className="text-[13px] font-bold text-gray-500 dark:text-[#B0B3B8] uppercase tracking-wide">
@@ -980,13 +1211,47 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                   <p className="text-[13px] font-bold text-gray-500 dark:text-[#B0B3B8] uppercase tracking-wide">
                     {tHub("activeCreators")}
                   </p>
-                  <div className="group/info relative flex items-center">
-                    <svg className="w-3.5 h-3.5 text-gray-400 hover:text-purple-500 cursor-help transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div className="absolute left-0 top-full mt-2 w-[260px] bg-white dark:bg-[#242526] text-gray-700 dark:text-[#E4E6EB] text-[12px] rounded-xl border border-gray-200 dark:border-[#3A3B3C] shadow-xl p-3 opacity-0 invisible group-hover/info:opacity-100 group-hover/info:visible transition-all z-50 pointer-events-none">
-                      <p className="font-bold mb-1.5 text-gray-800 dark:text-[#E4E6EB]">{tHub("activeCreatorsTooltipTitle")}</p>
-                      <ul className="flex flex-col gap-1.5 text-[11px] font-medium opacity-80 leading-relaxed text-left">
+                  <div className="relative inline-flex items-center group/info">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowCreatorsTooltip(prev => !prev);
+                      }}
+                      className="p-1 -m-1 text-gray-400 hover:text-purple-500 cursor-pointer rounded-full transition-colors focus:outline-none"
+                      title={tHub("activeCreatorsTooltipTitle")}
+                      aria-label="Info Kreator Aktif"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </button>
+
+                    {showCreatorsTooltip && (
+                      <div className="fixed inset-0 z-40" onClick={() => setShowCreatorsTooltip(false)} />
+                    )}
+
+                    <div className={`absolute right-0 top-full mt-2 w-[280px] bg-white dark:bg-[#242526] text-gray-700 dark:text-[#E4E6EB] text-[12px] rounded-xl border border-gray-200 dark:border-[#3A3B3C] shadow-xl p-3 z-50 transition-all ${
+                      showCreatorsTooltip 
+                        ? "opacity-100 visible pointer-events-auto" 
+                        : "opacity-0 invisible pointer-events-none group-hover/info:opacity-100 group-hover/info:visible"
+                    }`}>
+                      <div className="flex items-center justify-between mb-1.5 pb-1 border-b border-gray-100 dark:border-[#3A3B3C]">
+                        <p className="font-bold text-gray-800 dark:text-[#E4E6EB] text-[13px]">{tHub("activeCreatorsTooltipTitle")}</p>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowCreatorsTooltip(false);
+                          }}
+                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-0.5 rounded transition-colors"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                      <ul className="flex flex-col gap-1.5 text-[11px] font-medium text-gray-600 dark:text-[#B0B3B8] leading-relaxed text-left whitespace-normal break-words">
                         <li>{tHub("activeCreatorsTooltip1")}</li>
                         <li>{tHub("activeCreatorsTooltip2")}</li>
                         <li>{tHub("activeCreatorsTooltip3")}</li>
@@ -1023,7 +1288,12 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                       >
                         <div className="relative shrink-0 flex items-center">
                           {user.avatarUrl ? (
-                            <img src={user.avatarUrl} alt={user.displayName} className="w-10 h-10 rounded-full object-cover relative z-10" />
+                            <img
+                              src={user.avatarUrl}
+                              alt={user.displayName}
+                              onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/default-avatar.svg"; }}
+                              className="w-10 h-10 rounded-full object-cover relative z-10"
+                            />
                           ) : (
                             <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-[#3A3B3C] flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold text-[15px] relative z-10">
                               {user.displayName[0]?.toUpperCase()}
@@ -1080,7 +1350,12 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                     >
                       <div className="relative shrink-0 flex items-center">
                         {creator.avatarUrl ? (
-                          <img src={creator.avatarUrl} alt={creator.displayName} className="w-10 h-10 rounded-full object-cover relative z-10" />
+                          <img
+                            src={creator.avatarUrl}
+                            alt={creator.displayName}
+                            onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/default-avatar.svg"; }}
+                            className="w-10 h-10 rounded-full object-cover relative z-10"
+                          />
                         ) : (
                           <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-[#3A3B3C] flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold text-[15px] relative z-10">
                             {creator.displayName[0]?.toUpperCase()}
