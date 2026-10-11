@@ -114,15 +114,21 @@ export async function triggerNativeShare(data: {
   return false;
 }
 
-export function filterFriends(friends: FriendItem[], query: string): FriendItem[] {
+export function filterFriends(
+  friends: FriendItem[],
+  query: string,
+  limit?: number
+): FriendItem[] {
   const q = query.trim().toLowerCase();
-  if (!q) return friends;
+  const filtered = !q
+    ? friends
+    : friends.filter((f) => {
+        const nameMatch = f.displayName?.toLowerCase().includes(q);
+        const userMatch = f.username?.toLowerCase().includes(q);
+        return nameMatch || userMatch;
+      });
 
-  return friends.filter((f) => {
-    const nameMatch = f.displayName?.toLowerCase().includes(q);
-    const userMatch = f.username?.toLowerCase().includes(q);
-    return nameMatch || userMatch;
-  });
+  return typeof limit === "number" && limit > 0 ? filtered.slice(0, limit) : filtered;
 }
 
 export async function copyShareLink(url: string): Promise<boolean> {

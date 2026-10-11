@@ -10,9 +10,6 @@ import { getFriends } from "@/app/actions/connections";
 import {
   FriendItem,
   formatShareMessage,
-  getWhatsAppShareUrl,
-  getFacebookShareUrl,
-  getTelegramShareUrl,
   filterFriends,
   copyShareLink,
   triggerNativeShare,
@@ -71,6 +68,7 @@ export default function ShareSheetMobile({
       setSentFriendIds(new Set());
       setDragOffset(0);
       setIsDragging(false);
+      setFriends([]);
       return;
     }
 
@@ -97,7 +95,7 @@ export default function ShareSheetMobile({
   }, [isOpen, currentUser?.id]);
 
   const filteredFriends = useMemo(() => {
-    return filterFriends(friends, searchQuery);
+    return filterFriends(friends, searchQuery, 8);
   }, [friends, searchQuery]);
 
   // Smooth slide-down dismiss
@@ -146,9 +144,6 @@ export default function ShareSheetMobile({
 
   const fallbackText = shareData.type === "PROJECT" ? t("defaultFallbackProject") : t("defaultFallbackPost");
   const shareText = formatShareMessage(shareData.title, shareData.text, fallbackText);
-  const waUrl = getWhatsAppShareUrl(shareData.url, shareText);
-  const fbUrl = getFacebookShareUrl(shareData.url);
-  const tgUrl = getTelegramShareUrl(shareData.url, shareText);
 
   const handleCopy = async () => {
     const success = await copyShareLink(shareData.url);
@@ -161,13 +156,7 @@ export default function ShareSheetMobile({
     }
   };
 
-  const handleInstagramShare = async () => {
-    await copyShareLink(shareData.url);
-    toast.success(t("toastInstagram"));
-    window.open("https://www.instagram.com/", "_blank", "noopener,noreferrer");
-  };
-
-  const handleOtherShare = async () => {
+  const handlePlatformShare = async () => {
     const success = await triggerNativeShare({
       title: shareData.title,
       text: shareText,
@@ -230,7 +219,7 @@ export default function ShareSheetMobile({
                 {shareData.type === "PROJECT" ? t("titleProject") : t("titlePost")}
               </h2>
               <p className="text-[11.5px] text-gray-500 dark:text-gray-400">
-                {t("hintMobile")}
+                {t("subtitleMobile")}
               </p>
             </div>
             <button
@@ -278,12 +267,9 @@ export default function ShareSheetMobile({
 
           {/* Bagian 1: Kirim Langsung ke Teman NetHubz */}
           <div>
-            <div className="flex items-center justify-between mb-2">
+            <div className="mb-2">
               <span className="text-[13px] font-bold text-gray-900 dark:text-[#E4E6EB]">
                 {t("friendsTitle")}
-              </span>
-              <span className="text-[11px] text-gray-400 dark:text-gray-500">
-                {t("friendsCount", { count: friends.length })}
               </span>
             </div>
 
@@ -311,165 +297,89 @@ export default function ShareSheetMobile({
               />
             </div>
 
-            {/* Friends list */}
-            <div className="max-h-[160px] overflow-y-auto custom-scrollbar flex flex-col gap-1.5 pr-0.5">
+            {/* Friends list (Horizontal 4x2 grid) */}
+            <div className="max-h-[200px] overflow-y-auto custom-scrollbar pr-0.5">
               {isLoadingFriends ? (
-                <div className="py-5 text-center text-gray-400 text-[12.5px] flex items-center justify-center gap-2">
+                <div className="py-6 text-center text-gray-400 text-[12.5px] flex items-center justify-center gap-2">
                   <div className="w-3.5 h-3.5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
                   {t("loadingFriends")}
                 </div>
               ) : friends.length === 0 ? (
-                <div className="py-5 text-center text-gray-500 dark:text-gray-400 text-[12px]">
+                <div className="py-6 text-center text-gray-500 dark:text-gray-400 text-[12px]">
                   {t("noFriends")}
                 </div>
               ) : filteredFriends.length === 0 ? (
-                <div className="py-5 text-center text-gray-500 dark:text-gray-400 text-[12px]">
+                <div className="py-6 text-center text-gray-500 dark:text-gray-400 text-[12px]">
                   {t("noMatchingFriends")}
                 </div>
               ) : (
-                filteredFriends.map((friend) => {
-                  const isSent = sentFriendIds.has(friend.id);
-                  const fAvatar = friend.avatarUrl
-                    ? getOptimizedUrl(friend.avatarUrl, "avatar") || friend.avatarUrl
-                    : "/default-avatar.svg";
+                <div className="grid grid-cols-4 gap-y-3.5 gap-x-2 py-1">
+                  {filteredFriends.map((friend) => {
+                    const isSent = sentFriendIds.has(friend.id);
+                    const fAvatar = friend.avatarUrl
+                      ? getOptimizedUrl(friend.avatarUrl, "avatar") || friend.avatarUrl
+                      : "/default-avatar.svg";
 
-                  return (
-                    <div
-                      key={friend.id}
-                      className="flex items-center justify-between p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-[#3A3B3C] active:bg-gray-200 transition-colors"
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <img
-                          src={fAvatar}
-                          alt={friend.displayName}
-                          className="w-8 h-8 rounded-full object-cover shrink-0 border border-gray-200 dark:border-gray-700"
-                        />
-                        <div className="min-w-0">
-                          <p className="font-semibold text-[12.5px] text-gray-900 dark:text-gray-100 truncate leading-snug">
-                            {friend.displayName}
-                          </p>
-                          <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate">
-                            @{friend.username}
-                          </p>
-                        </div>
-                      </div>
-
+                    return (
                       <button
+                        key={friend.id}
                         onClick={() => handleSendToFriend(friend)}
                         disabled={isSent}
-                        className={`px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all shrink-0 ${
+                        className={`group flex flex-col items-center text-center p-1.5 rounded-xl transition-all cursor-pointer ${
                           isSent
-                            ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300"
-                            : "bg-blue-600 active:bg-blue-700 text-white shadow-sm"
+                            ? "opacity-90 cursor-default"
+                            : "hover:bg-gray-100 dark:hover:bg-[#3A3B3C]/50 active:scale-95"
                         }`}
                       >
-                        {isSent ? `${t("sent")} ✓` : t("send")}
+                        <div className="relative mb-1">
+                          <img
+                            src={fAvatar}
+                            alt={friend.displayName}
+                            className={`w-12 h-12 rounded-full object-cover transition-all ${
+                              isSent
+                                ? "ring-2 ring-emerald-500 scale-95"
+                                : "ring-1 ring-gray-200 dark:ring-gray-700 active:ring-blue-500"
+                            }`}
+                          />
+                          {isSent && (
+                            <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[9px] font-bold shadow-md">
+                              ✓
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[11.5px] font-semibold text-gray-900 dark:text-gray-100 truncate w-full leading-tight">
+                          {friend.displayName}
+                        </span>
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate w-full leading-tight mt-0.5">
+                          @{friend.username}
+                        </span>
                       </button>
-                    </div>
-                  );
-                })
+                    );
+                  })}
+                </div>
               )}
             </div>
           </div>
 
-          {/* Bagian 2: Media Sosial Eksternal (Clean Icon tanpa bulatan pembungkus) */}
-          <div className="pt-2 border-t border-gray-200 dark:border-[#3E4042]">
-            <span className="text-[13px] font-bold text-gray-900 dark:text-[#E4E6EB] block mb-2.5">
-              {t("socialTitle")}
-            </span>
-            <div className="flex items-center gap-6 px-1">
-              {/* WhatsApp */}
-              <a
-                href={waUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="WhatsApp"
-                aria-label="WhatsApp"
-                className="transition-transform duration-200 active:scale-90 cursor-pointer flex items-center justify-center text-[#25D366]"
-              >
-                <svg className="w-7 h-7 fill-current shrink-0" viewBox="0 0 24 24">
-                  <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2zm5.79 14.04c-.24.68-1.2 1.25-1.65 1.33-.42.08-.96.11-1.56-.08-.36-.12-.84-.28-1.46-.55-2.59-1.12-4.28-3.77-4.41-3.94-.13-.17-1.05-1.4-1.05-2.67 0-1.27.67-1.89.9-2.15.24-.26.52-.33.7-.33.17 0 .35 0 .5.01.16.01.37-.06.58.44.22.52.74 1.8.8 1.93.07.13.11.29.02.46-.08.17-.13.28-.26.43-.13.15-.27.34-.39.46-.13.13-.26.27-.11.53.15.26.68 1.12 1.46 1.81 1 .89 1.85 1.17 2.11 1.3.26.13.41.11.57-.07.15-.17.65-.76.82-1.02.17-.26.35-.22.58-.13.24.08 1.5.71 1.76.84.26.13.43.2.5.3.06.12.06.68-.18 1.36z" />
-                </svg>
-              </a>
-
-              {/* Facebook */}
-              <a
-                href={fbUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Facebook"
-                aria-label="Facebook"
-                className="transition-transform duration-200 active:scale-90 cursor-pointer flex items-center justify-center text-[#1877F2]"
-              >
-                <svg className="w-7 h-7 fill-current shrink-0" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                </svg>
-              </a>
-
-              {/* Telegram */}
-              <a
-                href={tgUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Telegram"
-                aria-label="Telegram"
-                className="transition-transform duration-200 active:scale-90 cursor-pointer flex items-center justify-center text-[#229ED9]"
-              >
-                <svg className="w-7 h-7 fill-current shrink-0" viewBox="0 0 24 24">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.94-1.28 4.91-2.12 5.89-2.54 2.81-1.17 3.39-1.37 3.77-1.38.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .37z" />
-                </svg>
-              </a>
-
-              {/* Instagram */}
-              <button
-                onClick={handleInstagramShare}
-                title="Instagram"
-                aria-label="Instagram"
-                className="transition-transform duration-200 active:scale-90 cursor-pointer flex items-center justify-center text-[#E4405F]"
-              >
-                <svg className="w-7 h-7 fill-current shrink-0" viewBox="0 0 24 24">
-                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                </svg>
-              </button>
-
-              {/* Other / Lainnya (System Share Sheet) */}
-              <button
-                onClick={handleOtherShare}
-                title={t("other")}
-                aria-label={t("other")}
-                className="transition-transform duration-200 active:scale-90 cursor-pointer flex items-center justify-center text-gray-700 dark:text-gray-300 active:text-blue-500"
-              >
-                <svg className="w-7 h-7 fill-none stroke-current" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                </svg>
-              </button>
-            </div>
+          {/* Tombol Bagikan ke Platform */}
+          <div className="pt-1 border-t border-gray-200 dark:border-[#3E4042]">
+            <button
+              onClick={handlePlatformShare}
+              className="w-full flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl bg-gradient-to-r from-purple-600 via-teal-500 to-emerald-400 active:from-purple-700 active:via-teal-600 active:to-emerald-500 text-white font-semibold text-[14px] shadow-sm active:scale-[0.98] transition-all cursor-pointer"
+            >
+              <svg className="w-5 h-5 fill-none stroke-current shrink-0" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
+                />
+              </svg>
+              <span>{t("shareToPlatform")}</span>
+            </button>
           </div>
 
-          {/* Salin Tautan Box */}
-          <div className="pt-2 border-t border-gray-200 dark:border-[#3E4042]">
-            <span className="text-[13px] font-bold text-gray-900 dark:text-[#E4E6EB] block mb-2">
-              {t("copyTitle")}
-            </span>
-            <div className="flex items-center gap-2 p-1.5 bg-gray-100 dark:bg-[#18191A] border border-gray-200 dark:border-[#3E4042] rounded-xl">
-              <input
-                type="text"
-                readOnly
-                value={shareData.url}
-                className="flex-1 bg-transparent px-2.5 text-[12px] text-gray-700 dark:text-gray-300 outline-none truncate select-all"
-              />
-              <button
-                onClick={handleCopy}
-                className={`px-3.5 py-2 rounded-lg text-[12px] font-semibold transition-all shrink-0 ${
-                  isCopied
-                    ? "bg-emerald-600 text-white shadow-sm"
-                    : "bg-blue-600 active:bg-blue-700 text-white shadow-sm"
-                }`}
-              >
-                {isCopied ? `${t("copied")} ✓` : t("copy")}
-              </button>
-            </div>
-          </div>
+
         </div>
       </div>
     </div>,
