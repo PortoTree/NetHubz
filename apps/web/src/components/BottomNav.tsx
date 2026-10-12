@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from "next-intl";
 import { useUser } from "@/contexts/UserContext";
 import { getOptimizedUrl } from "@/utils/cloudinary";
 import { profileCache } from "@/utils/cache";
+import { shouldHideBottomNav } from "@/utils/navigationVisibility";
 
 // Layout measurements
 const HANDLE_H = 20;
@@ -254,6 +255,10 @@ export default function BottomNav() {
 
   const rawAvatar = currentUser?.profile?.avatarUrl ?? profileCache.get(currentUser?.id)?.avatarUrl;
   const avatarSrc = rawAvatar ? getOptimizedUrl(rawAvatar, "avatar") : "/default-avatar.svg";
+
+  if (shouldHideBottomNav(pathname)) {
+    return null;
+  }
 
   return (
     <>

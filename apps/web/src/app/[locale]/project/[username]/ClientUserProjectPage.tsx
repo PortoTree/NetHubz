@@ -8,6 +8,10 @@ import { uploadToCloudinary } from "@/utils/uploadImage";
 import Link from "next/link";
 import { notFound, useRouter } from "next/navigation";
 import ProjectCard from "@/components/ProjectCard";
+import ProjectBackgroundGridDesktop from "@/components/ProjectBackgroundGridDesktop";
+import ProjectBackgroundGridMobile from "@/components/ProjectBackgroundGridMobile";
+import ProjectStatsSummaryDesktop from "@/components/ProjectStatsSummaryDesktop";
+import ProjectStatsSummaryMobile from "@/components/ProjectStatsSummaryMobile";
 
 import FloatingUserMenu from "@/components/FloatingUserMenu";
 import FloatingProjectHubBtn from "@/components/FloatingProjectHubBtn";
@@ -173,12 +177,14 @@ export default function ClientUserProjectPage({ username, initialProjects, initi
 
   if (isLoading) {
     return (
-      <div className="flex flex-col min-h-screen bg-[#F0F2F5] dark:bg-[#18191A] pt-20 pb-10">
-        <div className="max-w-[1200px] mx-auto w-full px-4">
-          <div className="flex flex-col items-center justify-center text-center mb-10 animate-pulse">
-            <div className="w-24 h-24 rounded-full bg-gray-300 dark:bg-[#3A3B3C] mb-4"></div>
-            <div className="w-48 h-8 rounded-lg bg-gray-300 dark:bg-[#3A3B3C] mb-2"></div>
-            <div className="w-32 h-5 rounded-lg bg-gray-300 dark:bg-[#3A3B3C]"></div>
+      <div className="relative flex flex-col min-h-screen bg-[#F0F2F5] dark:bg-[#18191A] pt-16 sm:pt-20 pb-6 sm:pb-10 overflow-hidden">
+        <ProjectBackgroundGridDesktop />
+        <ProjectBackgroundGridMobile />
+        <div className="relative z-10 max-w-[1200px] mx-auto w-full px-4">
+          <div className="flex flex-col items-center justify-center text-center mb-6 sm:mb-10 animate-pulse">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gray-300 dark:bg-[#3A3B3C] mb-3 sm:mb-4"></div>
+            <div className="w-36 sm:w-48 h-6 sm:h-8 rounded-lg bg-gray-300 dark:bg-[#3A3B3C] mb-2"></div>
+            <div className="w-48 sm:w-64 h-4 sm:h-5 rounded-lg bg-gray-300 dark:bg-[#3A3B3C]"></div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
@@ -207,35 +213,55 @@ export default function ClientUserProjectPage({ username, initialProjects, initi
   const avatar = profileUser.profile?.avatarUrl ? getOptimizedUrl(profileUser.profile.avatarUrl, 'thumb') : null;
   const isOwnProfile = user?.id === profileUser.id;
 
+  const totalReactions = projects.reduce((acc, p) => {
+    const cacheKey = `interaction_project_${p.id}_${user?.id || 'guest'}`;
+    const cached = interactionsCache.get(cacheKey);
+    return acc + (cached?.likeCount ?? p._count?.likes ?? p.likeCount ?? 0);
+  }, 0);
+
+  const totalComments = projects.reduce((acc, p) => {
+    const cacheKey = `interaction_project_${p.id}_${user?.id || 'guest'}`;
+    const cached = interactionsCache.get(cacheKey);
+    return acc + (cached?.commentCount ?? p._count?.comments ?? p.commentCount ?? 0);
+  }, 0);
+
   return (
-    <div className="flex flex-col min-h-screen bg-[#F0F2F5] dark:bg-[#18191A] pt-20 pb-10">
+    <div className="relative flex flex-col min-h-screen bg-[#F0F2F5] dark:bg-[#18191A] pt-16 sm:pt-20 pb-6 sm:pb-10 overflow-hidden">
+      <ProjectBackgroundGridDesktop />
+      <ProjectBackgroundGridMobile />
       <FloatingProjectHubBtn />
       <FloatingUserMenu isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
-      <div className="max-w-[1200px] mx-auto w-full px-4">
-        <div className="flex flex-col items-center justify-center text-center mb-10">
-          <Link href={`/${locale}/p/${profileUser.username}/${profileUser.id}`} className="block mb-4 hover:opacity-80 transition-opacity">
+      <div className="relative z-10 max-w-[1200px] mx-auto w-full px-4">
+        <div className="flex flex-col items-center justify-center text-center mb-6 sm:mb-10">
+          <Link href={`/${locale}/p/${profileUser.username}/${profileUser.id}`} className="block mb-3 sm:mb-4 hover:opacity-80 transition-opacity">
             {avatar ? (
-              <img src={avatar} alt={displayName} className="w-24 h-24 rounded-full object-cover shadow-sm mx-auto border-4 border-white dark:border-[#242526]" />
+              <img src={avatar} alt={displayName} className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover shadow-sm mx-auto border-[3px] sm:border-4 border-white dark:border-[#242526]" />
             ) : (
-              <div className="w-24 h-24 rounded-full bg-gray-200 dark:bg-[#3A3B3C] flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold text-3xl mx-auto border-4 border-white dark:border-[#242526]">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gray-200 dark:bg-[#3A3B3C] flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold text-2xl sm:text-3xl mx-auto border-[3px] sm:border-4 border-white dark:border-[#242526]">
                 {displayName[0].toUpperCase()}
               </div>
             )}
           </Link>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-[#E4E6EB] mb-2">
+          <h1 className="text-xl sm:text-3xl font-bold text-gray-900 dark:text-[#E4E6EB] mb-1.5 sm:mb-2 tracking-tight sm:tracking-normal">
             <Link href={`/${locale}/p/${profileUser.username}/${profileUser.id}`} className="hover:underline">
-              {displayName}'s Portfolio
+              {t("userPortfolio", { name: displayName })}
             </Link>
           </h1>
-          <p className="text-gray-600 dark:text-[#B0B3B8] max-w-2xl mx-auto flex items-center justify-center gap-2">
-            <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-            Showcasing {projects.length} {projects.length === 1 ? 'project' : 'projects'}
-          </p>
+          <ProjectStatsSummaryDesktop
+            projectCount={projects.length}
+            reactionCount={totalReactions}
+            commentCount={totalComments}
+          />
+          <ProjectStatsSummaryMobile
+            projectCount={projects.length}
+            reactionCount={totalReactions}
+            commentCount={totalComments}
+          />
         </div>
 
         {projects.length === 0 ? (
-          <div className="text-center py-20 bg-white dark:bg-[#242526] rounded-2xl border border-gray-100 dark:border-[#3A3B3C]">
-            <p className="text-gray-500 dark:text-[#B0B3B8]">
+          <div className="text-center py-12 sm:py-20 px-4 bg-white dark:bg-[#242526] rounded-2xl border border-gray-100 dark:border-[#3A3B3C]">
+            <p className="text-sm sm:text-base text-gray-500 dark:text-[#B0B3B8]">
               {t("userHasNoProject", { username: displayName }) || `Saat ini ${displayName} belum mempublikasikan project apapun.`}
             </p>
           </div>
@@ -264,8 +290,8 @@ export default function ClientUserProjectPage({ username, initialProjects, initi
         )}
       </div>
 
-      <div className="mt-20 flex justify-center pb-8">
-        <img src="/logo-horizontal.png" alt="Mencari" className="h-16 grayscale opacity-50 dark:opacity-40" />
+      <div className="relative z-10 mt-12 sm:mt-20 flex justify-center pb-6 sm:pb-8">
+        <img src="/logo-horizontal.png" alt="Mencari" className="h-10 sm:h-16 grayscale opacity-50 dark:opacity-40" />
       </div>
 
       {/* Modals */}
