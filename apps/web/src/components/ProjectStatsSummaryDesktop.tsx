@@ -5,16 +5,46 @@ import { useTranslations } from "next-intl";
 
 interface ProjectStatsSummaryDesktopProps {
   projectCount: number;
-  reactionCount: number;
+  starCount: number;
   commentCount: number;
+  isLoading?: boolean;
 }
 
 export default function ProjectStatsSummaryDesktop({
   projectCount,
-  reactionCount,
+  starCount,
   commentCount,
+  isLoading = false,
 }: ProjectStatsSummaryDesktopProps) {
   const t = useTranslations("project");
+
+  if (isLoading) {
+    return (
+      <div className="hidden sm:flex items-center justify-center gap-3 text-sm text-gray-600 dark:text-[#B0B3B8] font-medium max-w-2xl mx-auto">
+        {/* Project Count Skeleton */}
+        <div className="flex items-center gap-1.5 animate-pulse">
+          <div className="w-4 h-4 rounded bg-gray-200 dark:bg-[#3A3B3C]" />
+          <div className="w-16 h-4 rounded bg-gray-200 dark:bg-[#3A3B3C]" />
+        </div>
+
+        <span className="text-gray-300 dark:text-gray-600 select-none">•</span>
+
+        {/* Star Count Skeleton */}
+        <div className="flex items-center gap-1.5 animate-pulse">
+          <div className="w-4 h-4 rounded bg-gray-200 dark:bg-[#3A3B3C]" />
+          <div className="w-14 h-4 rounded bg-gray-200 dark:bg-[#3A3B3C]" />
+        </div>
+
+        <span className="text-gray-300 dark:text-gray-600 select-none">•</span>
+
+        {/* Comment Count Skeleton */}
+        <div className="flex items-center gap-1.5 animate-pulse">
+          <div className="w-4 h-4 rounded bg-gray-200 dark:bg-[#3A3B3C]" />
+          <div className="w-20 h-4 rounded bg-gray-200 dark:bg-[#3A3B3C]" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="hidden sm:flex items-center justify-center gap-3 text-sm text-gray-600 dark:text-[#B0B3B8] font-medium max-w-2xl mx-auto">
@@ -30,14 +60,14 @@ export default function ProjectStatsSummaryDesktop({
 
       <span className="text-gray-300 dark:text-gray-600 select-none">•</span>
 
-      {/* Reaction Count */}
-      <div className="flex items-center gap-1.5 hover:text-gray-900 dark:hover:text-white transition-colors">
+      {/* Star Count */}
+      <div className="flex items-center gap-1.5 hover:text-amber-500 transition-colors">
         <img
-          src="/react.svg"
-          alt="Reactions"
-          className="w-4 h-4 object-contain dark:invert opacity-90"
+          src="/star-label.svg"
+          alt="Stars"
+          className="w-4 h-4 object-contain dark:invert opacity-90 shrink-0"
         />
-        <span>{t("statsReactions", { count: reactionCount })}</span>
+        <span>{t("statsStars", { count: starCount })}</span>
       </div>
 
       <span className="text-gray-300 dark:text-gray-600 select-none">•</span>

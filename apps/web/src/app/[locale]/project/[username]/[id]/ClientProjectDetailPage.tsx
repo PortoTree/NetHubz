@@ -6,18 +6,31 @@ import { getProjectById } from "@/app/actions/projects";
 import { getOptimizedUrl } from "@/utils/cloudinary";
 import { getProfile } from "@/app/actions/profile";
 import { toggleLike, addComment, getComments, getCommentReplies, checkInteractionState, toggleSave } from "@/app/actions/interactions";
-import { interactionsCache } from "@/utils/cache";
+import { interactionsCache, commentsCache } from "@/utils/cache";
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import Link from "next/link";
 import { MediaRenderer } from "@/components/MediaRenderer";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import FloatingUserMenu from "@/components/FloatingUserMenu";
 import FloatingProjectHubBtn from "@/components/FloatingProjectHubBtn";
-import { ReactionButton, ReactionType } from "@/components/ReactionButton";
-import { ProjectReactionListDropdown } from "@/components/ProjectReactionListDropdown";
+import { CATEGORY_COLORS, getCategoryBadgeClasses, getStatusBadgeClasses } from "@/components/ProjectCard";
+import ProjectStarButtonDesktop from "@/components/ProjectStarButtonDesktop";
+import ProjectStarButtonMobile from "@/components/ProjectStarButtonMobile";
+import ProjectStargazersPopupDesktop from "@/components/ProjectStargazersPopupDesktop";
+import ProjectStargazersPopupMobile from "@/components/ProjectStargazersPopupMobile";
+import {
+  calculateOptimisticStar,
+  isProjectStarredByUser,
+  getClientTokenUser,
+  resolveInteractionUserKey,
+  RectLike,
+  invalidateStargazersCache,
+} from "@/utils/projectStar";
 import { formatPostTime } from "@/components/PostCard";
 import { CommentItem, InlineReplyInput } from "@/components/PostDetailModal";
+import CommentInput from "@/components/CommentInput";
+import ProjectCommentsModalMobile from "@/components/ProjectCommentsModalMobile";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Mention from "@tiptap/extension-mention";
@@ -115,16 +128,22 @@ export default function ClientProjectDetailPage({
   const t = useTranslations("project");
   const tGlobal = useTranslations();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { openShareModal } = useShareModal();
 
   const [project, setProject] = useState<any>(initialProject);
   const [isLoading, setIsLoading] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [themeLoaded, setThemeLoaded] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<any>(() => {
+    if (typeof window !== "undefined") {
+      return getClientTokenUser();
+    }
+    return null;
+  });
 
   // Like
-  const [myReaction, setMyReaction] = useState<ReactionType | null>(null);
+  const [myReaction, setMyReaction] = useState<string | null>(null);
   const [likeCount, setLikeCount] = useState(0);
   const [commentCount, setCommentCount] = useState(0);
   const [isInteractionLoading, setIsInteractionLoading] = useState(true);
@@ -136,39 +155,98 @@ export default function ClientProjectDetailPage({
   const [isSaved, setIsSaved] = useState(initialProject?.hasSaved || false);
   const [isSaveLoading, setIsSaveLoading] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [stargazersAnchor, setStargazersAnchor] = useState<RectLike | null>(null);
 
 
   // Comments
-  const [comments, setComments] = useState<any[]>([]);
-  const [isLoadingComments, setIsLoadingComments] = useState(true);
+  const [comments, setComments] = useState<any[]>(() => {
+    if (typeof window !== "undefined") {
+      const activeUserId = getClientTokenUser()?.id || "guest";
+      const cached = commentsCache.get(`project_${id}_${activeUserId}`);
+      if (cached?.comments) return cached.comments;
+    }
+    return [];
+  });
+  const [isLoadingComments, setIsLoadingComments] = useState(() => {
+    if (typeof window !== "undefined") {
+      const activeUserId = getClientTokenUser()?.id || "guest";
+      return !commentsCache.has(`project_${id}_${activeUserId}`);
+    }
+    return true;
+  });
   const [nextCursor, setNextCursor] = useState<string | undefined>(undefined);
   const [replyingTo, setReplyingTo] = useState<{ commentId: string, name: string, parentId?: string, username?: string, id?: string, rootId?: string } | null>(null);
   const [traceInfo, setTraceInfo] = useState<any>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [commentInput, setCommentInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editorHeight, setEditorHeight] = useState(40);
+  const [isInputOpen, setIsInputOpen] = useState(false);
+  const [isMobileCommentsOpen, setIsMobileCommentsOpen] = useState(false);
+  const [commentsBoxHeight, setCommentsBoxHeight] = useState(500);
+  const commentsBoxHeightRef = useRef(500);
 
-  const handleEditorMouseDown = useCallback((e: React.MouseEvent) => {
+  const handleCommentsBoxResizeDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     e.preventDefault();
+    e.stopPropagation();
+
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
+
     const startY = e.clientY;
-    const startHeight = editorHeight;
+    const startHeight = commentsBoxHeightRef.current;
 
-    const onMouseMove = (moveEvent: MouseEvent) => {
-      // moving up decreases clientY, which means deltaY is positive, so height increases
-      const deltaY = startY - moveEvent.clientY;
-      const newHeight = Math.max(40, Math.min(200, startHeight + deltaY));
-      setEditorHeight(newHeight);
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      moveEvent.preventDefault();
+      const deltaY = moveEvent.clientY - startY;
+      const maxHeight = 1200;
+      const newHeight = Math.max(380, Math.min(maxHeight, startHeight + deltaY));
+      commentsBoxHeightRef.current = newHeight;
+      setCommentsBoxHeight(newHeight);
     };
 
-    const onMouseUp = () => {
-      document.removeEventListener("mousemove", onMouseMove);
-      document.removeEventListener("mouseup", onMouseUp);
+    const onPointerUp = (upEvent: PointerEvent) => {
+      try {
+        (e.target as HTMLElement).releasePointerCapture(upEvent.pointerId);
+      } catch {}
+      document.removeEventListener("pointermove", onPointerMove);
+      document.removeEventListener("pointerup", onPointerUp);
+      document.removeEventListener("pointercancel", onPointerUp);
     };
 
-    document.addEventListener("mousemove", onMouseMove);
-    document.addEventListener("mouseup", onMouseUp);
-  }, [editorHeight]);
+    document.addEventListener("pointermove", onPointerMove);
+    document.addEventListener("pointerup", onPointerUp);
+    document.addEventListener("pointercancel", onPointerUp);
+  }, []);
+
+  const handleCommentsBoxTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    const touch = e.touches[0];
+    if (!touch) return;
+    const startY = touch.clientY;
+    const startHeight = commentsBoxHeightRef.current;
+
+    const onTouchMove = (moveEvent: TouchEvent) => {
+      if (moveEvent.cancelable) moveEvent.preventDefault();
+      const currentTouch = moveEvent.touches[0];
+      if (!currentTouch) return;
+      const deltaY = currentTouch.clientY - startY;
+      const maxHeight = 1200;
+      const newHeight = Math.max(380, Math.min(maxHeight, startHeight + deltaY));
+      commentsBoxHeightRef.current = newHeight;
+      setCommentsBoxHeight(newHeight);
+    };
+
+    const onTouchEnd = () => {
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend", onTouchEnd);
+      document.removeEventListener("touchcancel", onTouchEnd);
+    };
+
+    document.addEventListener("touchmove", onTouchMove, { passive: false });
+    document.addEventListener("touchend", onTouchEnd);
+    document.addEventListener("touchcancel", onTouchEnd);
+  }, []);
 
   // Collab
   const [isCollabModalOpen, setIsCollabModalOpen] = useState(false);
@@ -193,14 +271,18 @@ export default function ClientProjectDetailPage({
   const [isUserLoaded, setIsUserLoaded] = useState(false);
 
   useEffect(() => {
+    const tokenUser = getClientTokenUser();
+    if (tokenUser) {
+      setUser(tokenUser);
+    }
     const token = localStorage.getItem("token");
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split(".")[1]));
         const userId = payload.sub || payload.id || payload._id || payload.userId || "1";
-        setUser({ id: userId, username: payload.username || "Guest" });
+        setUser((prev: any) => ({ ...(prev || {}), id: userId, username: payload.username || "Guest" }));
         getProfile(userId).then(res => {
-          if (res?.success && res?.profile) setUser((prev: any) => ({ ...prev, profile: res.profile }));
+          if (res?.success && res?.profile) setUser((prev: any) => ({ ...(prev || {}), profile: res.profile }));
         });
       } catch (e) { console.error("Invalid token"); }
     }
@@ -221,49 +303,88 @@ export default function ClientProjectDetailPage({
   }, [isDarkMode, themeLoaded]);
 
   const fetchComments = useCallback(async (cursor?: string) => {
-    if (!cursor) setIsLoadingComments(true);
-    const res = await getComments("project", id, user?.id, cursor, 20);
+    const activeUserId = user?.id || (typeof window !== "undefined" ? getClientTokenUser()?.id : undefined);
+    const userKey = activeUserId || "guest";
+    const cacheKey = `project_${id}_${userKey}`;
+
+    // SWR Pattern (Kategori 4 Client-Only): render instan 0 ms jika cache ada
+    if (!cursor) {
+      const cached = commentsCache.get(cacheKey);
+      if (cached) {
+        setComments(cached.comments);
+        setNextCursor(cached.nextCursor);
+        setIsLoadingComments(false);
+      } else {
+        setIsLoadingComments(true);
+      }
+    }
+
+    const res = await getComments("project", id, activeUserId, cursor, 20);
     if (res.success) {
-      if (cursor) setComments(prev => [...prev, ...(res.comments || [])]);
-      else setComments(res.comments || []);
+      if (cursor) {
+        setComments(prev => {
+          const next = [...prev, ...(res.comments || [])];
+          commentsCache.set(cacheKey, { comments: next, nextCursor: res.nextCursor });
+          return next;
+        });
+      } else {
+        setComments(res.comments || []);
+        commentsCache.set(cacheKey, { comments: res.comments || [], nextCursor: res.nextCursor });
+      }
       setNextCursor(res.nextCursor);
     }
     if (!cursor) setIsLoadingComments(false);
   }, [id, user?.id]);
 
   const loadInteractions = useCallback(() => {
-    if (!isUserLoaded) return;
-    const cacheKey = `interaction_project_${id}_${user?.id || 'guest'}`;
+    const hasToken = typeof window !== "undefined" && !!localStorage.getItem("token");
+    const activeUserId = user?.id || (typeof window !== "undefined" ? getClientTokenUser()?.id : undefined);
+    const userKey = resolveInteractionUserKey(activeUserId, hasToken);
+
+    if (!userKey) {
+      setIsInteractionLoading(true);
+      return;
+    }
+
+    const cacheKey = `interaction_project_${id}_${userKey}`;
     if (interactionsCache.has(cacheKey)) {
       const cached = interactionsCache.get(cacheKey);
-      setMyReaction(cached.myReaction);
-      setLikeCount(cached.likeCount);
-      setCommentCount(cached.commentCount);
-      setIsSaved(cached.hasSaved);
+      setMyReaction(cached.myReaction || null);
+      setLikeCount(cached.likeCount ?? project?._count?.likes ?? 0);
+      setCommentCount(cached.commentCount ?? project?._count?.comments ?? 0);
+      setIsSaved(cached.hasSaved || false);
       setIsInteractionLoading(false);
-    } else {
-      setIsInteractionLoading(true);
+      return;
     }
-    // SWR for interactions
-    checkInteractionState(user?.id, "project", id).then(interaction => {
-      if (interaction.success) {
-        setMyReaction(interaction.myReaction as ReactionType | null);
+
+    if (userKey === "guest") {
+      setMyReaction(null);
+      setLikeCount(project?._count?.likes ?? 0);
+      setCommentCount(project?._count?.comments ?? 0);
+      setIsSaved(false);
+      setIsInteractionLoading(false);
+      return;
+    }
+
+    setIsInteractionLoading(true);
+    checkInteractionState(activeUserId, "project", id).then(interaction => {
+      if (interaction && interaction.success) {
+        setMyReaction((interaction.myReaction as string | null) || null);
         setLikeCount(interaction.likeCount || 0);
         setCommentCount(interaction.commentCount || 0);
         setIsSaved(interaction.hasSaved || false);
         const existing = interactionsCache.get(cacheKey) || {};
         interactionsCache.set(cacheKey, {
           ...existing,
-          myReaction: interaction.myReaction as ReactionType | null,
+          myReaction: interaction.myReaction || null,
           likeCount: interaction.likeCount || 0,
           commentCount: interaction.commentCount || 0,
           hasSaved: interaction.hasSaved || false,
-          topReactions: interaction.topReactions || existing.topReactions || []
         });
       }
       setIsInteractionLoading(false);
     }).catch(() => setIsInteractionLoading(false));
-  }, [id, user?.id, isUserLoaded]);
+  }, [id, user?.id, project?._count]);
 
   useEffect(() => {
     loadInteractions();
@@ -274,69 +395,79 @@ export default function ClientProjectDetailPage({
   }, [loadInteractions, fetchComments]);
 
   useEffect(() => {
-    if (!isLoading && window.location.hash === '#comments') {
-      const timer = setTimeout(() => { const el = document.getElementById('comments'); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 150);
-      return () => clearTimeout(timer);
-    }
-  }, [isLoading]);
+    if (isLoading) return;
 
-  const handleLike = async (reactionType: ReactionType = "LIKE") => {
-    if (!user || isLikeLoading) return;
-    const previousReaction = myReaction;
-    const isRemoving = previousReaction === reactionType;
-    const newReaction = isRemoving ? null : reactionType;
+    const isMobile = window.innerWidth < 1024;
+    const hasOpenCommentsParam = searchParams.get('openComments') === 'true' || searchParams.get('comments') === 'open' || searchParams.get('commentId');
+    const hasCommentsHash = window.location.hash === '#comments';
 
-    const cacheKey = `interaction_project_${id}_${user.id}`;
-    
-    const cached = interactionsCache.get(cacheKey) || {};
-    let newTopReactions = cached.topReactions || [];
-    if (!previousReaction && newReaction && !newTopReactions.includes(newReaction)) {
-      newTopReactions = [newReaction, ...newTopReactions].slice(0, 3);
-    }
-
-    setMyReaction(newReaction);
-    if (!previousReaction && newReaction) {
-      setLikeCount((prev: number) => {
-        const next = prev + 1;
-        interactionsCache.set(cacheKey, { ...cached, myReaction: newReaction, likeCount: next, topReactions: newTopReactions });
-        return next;
-      });
-    } else if (previousReaction && !newReaction) {
-      setLikeCount((prev: number) => {
-        const next = Math.max(0, prev - 1);
-        interactionsCache.set(cacheKey, { ...cached, myReaction: newReaction, likeCount: next });
-        return next;
-      });
-    } else if (previousReaction && newReaction && previousReaction !== newReaction) {
-        if (!newTopReactions.includes(newReaction)) {
-           newTopReactions = [newReaction, ...newTopReactions].slice(0, 3);
+    if (isMobile) {
+      if (hasOpenCommentsParam || hasCommentsHash) {
+        setIsMobileCommentsOpen(true);
+        if (hasCommentsHash) {
+          // Bersihkan hash #comments supaya browser mobile tidak scroll ke posisi bawah
+          window.history.replaceState(null, '', window.location.pathname + window.location.search);
         }
-        interactionsCache.set(cacheKey, { ...cached, myReaction: newReaction, topReactions: newTopReactions });
-    }
-    
-    setIsLikeLoading(true);
-    const res = await toggleLike(user.id, "project", id, reactionType);
-    if (!res.success) { 
-      setMyReaction(previousReaction); 
-      if (!previousReaction && newReaction) {
-        setLikeCount((prev: number) => {
-            const next = Math.max(0, prev - 1);
-            interactionsCache.set(cacheKey, { ...interactionsCache.get(cacheKey), myReaction: previousReaction, likeCount: next });
-            return next;
-        });
-      } else if (previousReaction && !newReaction) {
-        setLikeCount((prev: number) => {
-            const next = prev + 1;
-            interactionsCache.set(cacheKey, { ...interactionsCache.get(cacheKey), myReaction: previousReaction, likeCount: next });
-            return next;
-        });
-      } else if (previousReaction && newReaction && previousReaction !== newReaction) {
-          interactionsCache.set(cacheKey, { ...interactionsCache.get(cacheKey), myReaction: previousReaction });
       }
     } else {
-        window.dispatchEvent(new Event("refresh_projects"));
+      if (hasCommentsHash || hasOpenCommentsParam) {
+        const timer = setTimeout(() => {
+          const el = document.getElementById('comments');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }, 150);
+        return () => clearTimeout(timer);
+      }
     }
-    setIsLikeLoading(false);
+  }, [isLoading, searchParams]);
+
+  const handleToggleStar = async () => {
+    const activeUserId = user?.id || (typeof window !== "undefined" ? getClientTokenUser()?.id : undefined);
+    if (!activeUserId) {
+      toast.error(t("mustLoginToInteract") || "Silakan login terlebih dahulu");
+      router.push(`/${locale}/login`);
+      return;
+    }
+    if (isLikeLoading) return;
+    setIsLikeLoading(true);
+
+    const prevStarred = isProjectStarredByUser(myReaction);
+    const next = calculateOptimisticStar({ isStarred: prevStarred, starCount: likeCount });
+
+    const cacheKey = `interaction_project_${id}_${activeUserId}`;
+    setMyReaction(next.isStarred ? "STAR" : null);
+    setLikeCount(next.starCount);
+
+    interactionsCache.set(cacheKey, {
+      ...interactionsCache.get(cacheKey),
+      myReaction: next.isStarred ? "STAR" : null,
+      likeCount: next.starCount,
+    });
+    invalidateStargazersCache(id);
+
+    try {
+      const res = await toggleLike(activeUserId, "project", id, "STAR");
+      if (!res.success) {
+        setMyReaction(prevStarred ? "STAR" : null);
+        setLikeCount(likeCount);
+        interactionsCache.set(cacheKey, {
+          ...interactionsCache.get(cacheKey),
+          myReaction: prevStarred ? "STAR" : null,
+          likeCount: likeCount,
+        });
+      } else {
+        window.dispatchEvent(new Event("refresh_projects"));
+      }
+    } catch (e) {
+      setMyReaction(prevStarred ? "STAR" : null);
+      setLikeCount(likeCount);
+      interactionsCache.set(cacheKey, {
+        ...interactionsCache.get(cacheKey),
+        myReaction: prevStarred ? "STAR" : null,
+        likeCount: likeCount,
+      });
+    } finally {
+      setIsLikeLoading(false);
+    }
   };
 
   const handleShare = () => {
@@ -409,8 +540,56 @@ export default function ClientProjectDetailPage({
   };
 
   const handleLikeComment = async (commentId: string, reactionType: string = "LIKE") => {
-    if (!user) return;
-    await toggleLike(user.id, "comment", commentId, reactionType);
+    const activeUserId = user?.id || (typeof window !== "undefined" ? getClientTokenUser()?.id : undefined);
+    if (!activeUserId) return;
+
+    const userKey = activeUserId || "guest";
+    const cacheKey = `project_${id}_${userKey}`;
+
+    // Optimistically update comments in state and cache
+    setComments(prev => {
+      const updateReactionInList = (list: any[]): any[] => {
+        return list.map(c => {
+          if (c.id === commentId) {
+            const isRemoving = c.myReaction === reactionType;
+            const newReaction = isRemoving ? null : reactionType;
+            const currentLikes = c._count?.likes ?? 0;
+            const newLikes = isRemoving ? Math.max(0, currentLikes - 1) : (!c.myReaction ? currentLikes + 1 : currentLikes);
+
+            let newTopReactions = Array.isArray(c.topReactions) ? [...c.topReactions] : [];
+            if (!isRemoving && !newTopReactions.includes(reactionType)) {
+              newTopReactions = [reactionType, ...newTopReactions];
+            } else if (isRemoving && newLikes === 0) {
+              newTopReactions = newTopReactions.filter(r => r !== reactionType);
+            }
+
+            return {
+              ...c,
+              myReaction: newReaction,
+              topReactions: newTopReactions,
+              _count: {
+                ...(c._count || {}),
+                likes: newLikes,
+              }
+            };
+          }
+          if (c.optimisticReplies && c.optimisticReplies.length > 0) {
+            return { ...c, optimisticReplies: updateReactionInList(c.optimisticReplies) };
+          }
+          return c;
+        });
+      };
+      const updated = updateReactionInList(prev);
+      const existing = commentsCache.get(cacheKey);
+      commentsCache.set(cacheKey, { comments: updated, nextCursor: existing?.nextCursor });
+      return updated;
+    });
+
+    try {
+      await toggleLike(activeUserId, "comment", commentId, reactionType);
+    } catch (e) {
+      console.error("Failed to like comment:", e);
+    }
   };
 
   const handleReplyClick = (uname: string, uid: string, displayName: string, exactCommentId: string, parentIdForDB?: string, rootId?: string) => {
@@ -426,7 +605,14 @@ export default function ClientProjectDetailPage({
         if (c.optimisticReplies) return { ...c, optimisticReplies: appendReply(c.optimisticReplies, pid) };
         return c;
       });
-      setComments(prev => appendReply(prev, parentId));
+      setComments(prev => {
+        const next = appendReply(prev, parentId);
+        const userKey = user?.id || (typeof window !== "undefined" ? getClientTokenUser()?.id : "guest");
+        const cacheKey = `project_${id}_${userKey}`;
+        const existing = commentsCache.get(cacheKey);
+        commentsCache.set(cacheKey, { comments: next, nextCursor: existing?.nextCursor });
+        return next;
+      });
       setReplyingTo(null);
     }
   };
@@ -463,7 +649,7 @@ export default function ClientProjectDetailPage({
     },
     editorProps: {
       attributes: {
-        class: 'w-full min-h-[24px] max-h-[120px] overflow-y-auto outline-none custom-scrollbar',
+        class: 'w-full min-h-[24px] overflow-y-auto outline-none custom-scrollbar',
       },
       handleKeyDown: (view, event) => {
         if (event.key === 'Enter' && !event.shiftKey) {
@@ -485,7 +671,14 @@ export default function ClientProjectDetailPage({
     setIsSubmitting(true);
     const res = await addComment(user.id, "project", id, commentInput);
     if (res.success && res.comment) { 
-      setComments(prev => [res.comment, ...prev]); 
+      setComments(prev => {
+        const next = [res.comment, ...prev];
+        const userKey = user?.id || (typeof window !== "undefined" ? getClientTokenUser()?.id : "guest");
+        const cacheKey = `project_${id}_${userKey}`;
+        const existing = commentsCache.get(cacheKey);
+        commentsCache.set(cacheKey, { comments: next, nextCursor: existing?.nextCursor });
+        return next;
+      }); 
       setCommentCount(prev => prev + 1);
       setCommentInput(""); 
       if (editor) editor.commands.clearContent();
@@ -527,7 +720,9 @@ export default function ClientProjectDetailPage({
   const profileUser = p.user;
   const displayName = profileUser.profile?.displayName || profileUser.username;
   const avatar = profileUser.profile?.avatarUrl ? getOptimizedUrl(profileUser.profile.avatarUrl, 'thumb') : null;
-  const statusKey = ({ RELEASED: "statusReleased", IN_PROGRESS: "statusInProgress", OPEN_SOURCE: "statusOpenSource", SEARCHING_TEAM: "statusSearchingTeam" } as Record<string, string>)[p.status] || "statusReleased";
+  const statusKey = ({ RELEASED: "statusReleased", IN_PROGRESS: "statusInProgress", OPEN_SOURCE: "statusOpenSource", SEARCHING_TEAM: "statusSearchingTeam", HIATUS: "statusHiatus" } as Record<string, string>)[p.status] || "statusReleased";
+
+
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F0F2F5] dark:bg-[#18191A] pt-20 pb-20">
@@ -538,44 +733,81 @@ export default function ClientProjectDetailPage({
         <ProjectGallery mediaUrls={p.mediaUrls?.length ? p.mediaUrls : p.coverUrls || []} />
 
         <div className="flex flex-col gap-10">
-          <div className="flex flex-col gap-6 border-b border-gray-200 dark:border-[#3A3B3C] pb-8">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="flex flex-col gap-2">
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-[#E4E6EB]">{p.title}</h1>
-                <div className="flex flex-wrap items-center gap-2">
-                  {p.category && (<span className="inline-flex items-center px-2.5 py-1 rounded-md text-[13px] font-medium bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400 border border-blue-100 dark:border-blue-500/20">{p.category === "OTHER" ? p.customCategory : t(`cat_${p.category}` as any)}</span>)}
-                  {p.isForSale && (<span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-[13px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>FOR SALE</span>)}
-                </div>
+          <div className="flex flex-col gap-5 sm:gap-6 border-b border-gray-200 dark:border-[#3A3B3C] pb-8">
+            <div className="flex flex-col gap-2.5">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-gray-900 dark:text-[#E4E6EB] leading-tight break-words">
+                {p.title}
+              </h1>
+              <div className="flex flex-wrap items-center gap-2">
+                {p.category && (
+                  <span className={getCategoryBadgeClasses(CATEGORY_COLORS[p.category] || "blue")}>
+                    {p.category === "OTHER" ? p.customCategory : t(`cat_${p.category}` as any)}
+                  </span>
+                )}
+                <span className={getStatusBadgeClasses(p.status)}>
+                  {t(statusKey)}
+                </span>
+                {p.isForSale && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    FOR SALE
+                  </span>
+                )}
               </div>
-              <span className={"shrink-0 px-2.5 py-1 rounded-md text-[13px] font-semibold " + (p.status === "RELEASED" ? "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400" : p.status === "IN_PROGRESS" ? "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400" : p.status === "OPEN_SOURCE" ? "bg-white dark:bg-[#242526] text-gray-700 dark:text-gray-300 border border-dashed border-gray-400 dark:border-gray-500" : p.status === "SEARCHING_TEAM" ? "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300" : "bg-gray-100 text-gray-700")}>{t(statusKey)}</span>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <Link href={`/${locale}/p/${profileUser.username}/${profileUser.id}`} className="flex items-center gap-4 group w-fit">
-                {avatar ? <img src={avatar} alt={displayName} className="w-14 h-14 rounded-full object-cover shadow-sm" /> : <div className="w-14 h-14 rounded-full bg-gray-200 dark:bg-[#3A3B3C] flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold text-xl">{displayName[0].toUpperCase()}</div>}
+            <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
+              <Link href={`/${locale}/p/${profileUser.username}/${profileUser.id}`} className="flex items-center gap-3.5 group w-fit">
+                {avatar ? (
+                  <img src={avatar} alt={displayName} className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover shadow-sm ring-2 ring-gray-100 dark:ring-[#3A3B3C]/80" />
+                ) : (
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gray-200 dark:bg-[#3A3B3C] flex items-center justify-center text-gray-500 dark:text-gray-400 font-bold text-xl ring-2 ring-gray-100 dark:ring-[#3A3B3C]/80">
+                    {displayName[0].toUpperCase()}
+                  </div>
+                )}
                 <div>
-                  <h3 className="text-[16px] font-bold text-gray-900 dark:text-[#E4E6EB] group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">{displayName}</h3>
-                  <p className="text-[14px] text-gray-500 dark:text-[#B0B3B8]">@{profileUser.username}</p>
+                  <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-[#E4E6EB] tracking-tight group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors leading-snug">
+                    {displayName}
+                  </h3>
+                  <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-[#A0A3A8] leading-tight">
+                    @{profileUser.username}
+                  </p>
                 </div>
               </Link>
 
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-3 bg-white dark:bg-[#242526] px-5 py-2.5 rounded-full shadow-sm border border-gray-100 dark:border-[#3A3B3C]">
+              <div className="w-full sm:w-auto flex items-center justify-end gap-2.5 sm:gap-3 ml-auto">
+                <div className="flex items-center gap-2.5 sm:gap-3 bg-white dark:bg-[#242526] px-4 py-2 sm:px-5 sm:py-2.5 rounded-full shadow-sm border border-gray-100 dark:border-[#3A3B3C]">
                   <div className="flex items-center relative">
-                    {isInteractionLoading ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-5 h-5 bg-gray-200 dark:bg-gray-700 animate-pulse rounded-full" />
-                        <div className="w-4 h-4 bg-gray-200 dark:bg-gray-700 animate-pulse rounded-full" />
-                      </div>
-                    ) : (
-                      <div className="flex items-center">
-                        <ProjectReactionListDropdown targetId={id} count={likeCount} />
-                        <ReactionButton myReaction={myReaction} onReact={handleLike} count={likeCount} />
-                      </div>
-                    )}
+                    <ProjectStarButtonDesktop
+                      isStarred={isProjectStarredByUser(myReaction)}
+                      starCount={likeCount}
+                      isLoading={isLikeLoading}
+                      isInteractionLoading={isInteractionLoading}
+                      onToggleStar={handleToggleStar}
+                      onOpenStargazers={(rect) => setStargazersAnchor(rect)}
+                    />
+                    <ProjectStarButtonMobile
+                      isStarred={isProjectStarredByUser(myReaction)}
+                      starCount={likeCount}
+                      isLoading={isLikeLoading}
+                      isInteractionLoading={isInteractionLoading}
+                      onToggleStar={handleToggleStar}
+                      onOpenStargazers={(rect) => setStargazersAnchor(rect)}
+                    />
                   </div>
                   <div className="w-px h-5 bg-gray-200 dark:bg-[#4E4F50]"></div>
-                  <button onClick={() => document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth' })} className="flex items-center gap-2 text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 font-semibold transition-colors text-[14px]">
+                  <button 
+                    onClick={() => {
+                      if (window.innerWidth < 1024) {
+                        setIsMobileCommentsOpen(true);
+                      } else {
+                        document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }} 
+                    className="flex items-center gap-2 text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 font-semibold transition-colors text-[14px]"
+                  >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                     {isInteractionLoading ? <div className="w-4 h-4 bg-gray-200 dark:bg-gray-700 animate-pulse rounded-full" /> : <span>{commentCount}</span>}
                   </button>
@@ -595,9 +827,13 @@ export default function ClientProjectDetailPage({
                   )}
                 </div>
                 
-                <button onClick={handleShare} className="flex items-center gap-2 bg-white dark:bg-[#242526] px-5 py-2.5 rounded-full shadow-sm border border-gray-100 dark:border-[#3A3B3C] text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 font-semibold transition-colors text-[14px]">
+                <button 
+                  onClick={handleShare} 
+                  title={t("share") || "Bagikan"}
+                  aria-label={t("share") || "Bagikan"}
+                  className="flex shrink-0 items-center justify-center w-[40px] h-[40px] sm:w-[42px] sm:h-[42px] bg-white dark:bg-[#242526] rounded-full shadow-sm border border-gray-100 dark:border-[#3A3B3C] text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 transition-colors"
+                >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
-                  {t("share") || "Share"}
                 </button>
               </div>
             </div>
@@ -623,15 +859,45 @@ export default function ClientProjectDetailPage({
 
           {p.techStack && p.techStack.length > 0 && (
             <div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-[#E4E6EB] mb-4">{t("technologies") || "Technologies"}</h3>
-              <div className="flex flex-wrap gap-2">{p.techStack.map((tech: string) => <span key={tech} className="px-4 py-2 rounded-xl text-[14px] font-semibold bg-gray-200 text-gray-800 dark:bg-[#3A3B3C] dark:text-[#E4E6EB]">{tech}</span>)}</div>
+              <h3 className="text-lg sm:text-xl font-bold tracking-tight text-gray-900 dark:text-[#E4E6EB] mb-3">{t("technologies") || "Technologies"}</h3>
+              <div className="flex flex-wrap gap-2 sm:gap-2.5">
+                {p.techStack.map((tech: string) => (
+                  <span key={tech} className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-xl text-[13px] sm:text-[14px] font-bold tracking-wide uppercase bg-gray-200/90 text-gray-800 dark:bg-[#2A2B2D] dark:text-[#E4E6EB] border border-gray-300/40 dark:border-white/5 transition-colors">
+                    {tech}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
 
           {(p.repoUrl || p.demoUrl) && (
-            <div className="flex flex-wrap items-center gap-4 pt-4">
-              {p.repoUrl && (<a href={p.repoUrl} target="_blank" rel="noopener noreferrer" className="px-6 py-3 bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900 font-bold rounded-xl hover:opacity-90 transition-opacity flex items-center gap-2"><svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" /></svg>{t("viewRepo")}</a>)}
-              {p.demoUrl && (<a href={p.demoUrl} target="_blank" rel="noopener noreferrer" className="px-6 py-3 bg-purple-600 text-white font-bold rounded-xl hover:bg-purple-700 transition-colors flex items-center gap-2 shadow-sm shadow-purple-200 dark:shadow-none"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>{t("viewDemo")}</a>)}
+            <div className="flex flex-wrap items-center gap-3 sm:gap-4 pt-2 sm:pt-3">
+              {p.repoUrl && (
+                <a
+                  href={p.repoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3 bg-gray-900 text-white dark:bg-white dark:text-gray-900 font-bold text-[14px] sm:text-[15px] tracking-tight leading-none rounded-xl hover:opacity-90 transition-all shadow-sm active:scale-[0.98]"
+                >
+                  <svg className="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                    <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
+                  </svg>
+                  <span>{t("viewRepo")}</span>
+                </a>
+              )}
+              {p.demoUrl && (
+                <a
+                  href={p.demoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-bold text-[14px] sm:text-[15px] tracking-tight leading-none rounded-xl transition-all shadow-sm shadow-purple-500/20 dark:shadow-none active:scale-[0.98]"
+                >
+                  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  <span>{t("viewDemo")}</span>
+                </a>
+              )}
             </div>
           )}
 
@@ -641,16 +907,19 @@ export default function ClientProjectDetailPage({
           <div id="comments" className="pt-2 pb-10">
             <div className="flex flex-col lg:flex-row gap-8">
 
-              {/* Left Column: Comments */}
-              <div className="flex-1 lg:max-w-[60%] border border-gray-200 dark:border-[#3A3B3C] rounded-2xl bg-white dark:bg-[#242526] flex flex-col h-[500px] min-h-[500px] max-h-[1200px] resize-y overflow-hidden">
-                <div className="p-4 border-b border-gray-200 dark:border-[#3A3B3C] bg-gray-50 dark:bg-[#1f2021] rounded-t-2xl">
+              {/* Left Column: Comments (Desktop) */}
+              <div 
+                className="hidden lg:flex lg:flex-1 lg:max-w-[60%] lg:self-start border border-gray-200 dark:border-[#3A3B3C] rounded-2xl bg-white dark:bg-[#242526] flex-col overflow-hidden relative shadow-sm shrink-0"
+                style={{ height: `${commentsBoxHeight}px`, minHeight: "380px" }}
+              >
+                <div className="p-4 border-b border-gray-200 dark:border-[#3A3B3C] bg-gray-50 dark:bg-[#1f2021] rounded-none sm:rounded-t-2xl shrink-0 z-10">
                   <h3 className="text-[17px] font-bold text-gray-900 dark:text-[#E4E6EB] flex items-center gap-2">
                     <svg className="w-5 h-5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" /></svg>
                     {t("comments") || "Comments"} <span className="text-gray-500 dark:text-[#B0B3B8] font-medium">({comments.length})</span>
                   </h3>
                 </div>
 
-                <div className="p-4 flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-4">
+                <div className="p-4 flex-1 min-h-0 overflow-y-auto custom-scrollbar flex flex-col gap-4 pb-20">
                   {isLoadingComments ? (
                     [1,2,3].map(i => (
                       <div key={i} className="flex gap-3 animate-pulse">
@@ -710,68 +979,31 @@ export default function ClientProjectDetailPage({
                   )}
                 </div>
 
-                {/* Comment Input */}
-                <div className="p-4 border-t border-gray-200 dark:border-[#3A3B3C] bg-white dark:bg-[#242526] rounded-b-2xl">
-                  <div className="flex items-end gap-3">
-                    <div className="w-9 h-9 shrink-0 rounded-full bg-gray-200 dark:bg-[#3A3B3C] overflow-hidden flex items-center justify-center mb-0.5">
-                      {user?.profile?.avatarUrl ? <img src={getOptimizedUrl(user.profile.avatarUrl, 'thumb')} alt="You" className="w-full h-full object-cover" /> : <span className="text-gray-500 font-bold text-sm">{user?.username?.[0]?.toUpperCase() || "?"}</span>}
-                    </div>
-                    <div className="flex-1 flex gap-2 items-end">
-                      <form 
-                        className="flex-1 bg-gray-100 dark:bg-[#3A3B3C] rounded-xl flex flex-col text-[14px] text-gray-900 dark:text-[#E4E6EB] border border-transparent focus-within:border-purple-300 dark:focus-within:border-purple-500/50 transition-colors cursor-text"
-                        onClick={() => editor?.chain().focus().run()}
-                        onSubmit={handleTopLevelSubmit}
-                      >
-                        {/* Top drag handle */}
-                        <div 
-                          onMouseDown={handleEditorMouseDown}
-                          className="w-full flex justify-center py-1 cursor-ns-resize hover:bg-gray-200/50 dark:hover:bg-[#4E4F50]/50 transition-colors group shrink-0 rounded-t-xl"
-                        >
-                          <div className="w-8 h-1 rounded-full bg-gray-300 dark:bg-gray-500 group-hover:bg-gray-400 dark:group-hover:bg-gray-400" />
-                        </div>
-                        
-                        <div 
-                          className="px-3 pb-2 w-full flex flex-row items-end" 
-                          style={{ height: `${editorHeight}px`, minHeight: `${editorHeight}px`, maxHeight: `${editorHeight}px` }}
-                        >
-                          {/* Emoji Button */}
-                          <div ref={emojiRef} className="relative shrink-0 mr-2 self-end">
-                            <button type="button" onClick={(e) => { e.stopPropagation(); setIsEmojiOpen(o => !o); }} className="text-gray-400 hover:text-purple-500 transition-colors">
-                              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            </button>
-                            {isEmojiOpen && (
-                              <div className="absolute bottom-full left-0 mb-2 z-50 shadow-2xl rounded-2xl overflow-hidden picker-container">
-                                <style>{`.picker-container em-emoji-picker{height:280px !important;min-height:280px !important;max-height:280px !important;width:328px !important;max-width:calc(100vw - 2rem) !important;}`}</style>
-                                <Picker data={data} onEmojiSelect={(e: any) => {
-                                  if (editor) {
-                                    editor.chain().focus().insertContent(e.native).run();
-                                    setIsEmojiOpen(false);
-                                  }
-                                }} theme={typeof document !== "undefined" && document.documentElement.classList.contains("dark") ? "dark" : "light"} previewPosition="none" skinTonePosition="search" />
-                              </div>
-                            )}
-                          </div>
+                {/* Floating Comment Input (Same UI/UX as PostDetailModal) */}
+                <CommentInput
+                  editor={editor}
+                  commentText={commentInput}
+                  isSubmitting={isSubmitting}
+                  replyingTo={replyingTo}
+                  setReplyingTo={setReplyingTo}
+                  handleSubmitComment={handleTopLevelSubmit}
+                  isEmojiOpen={isEmojiOpen}
+                  setIsEmojiOpen={setIsEmojiOpen}
+                  emojiRef={emojiRef}
+                  isOpen={isInputOpen}
+                  setIsOpen={setIsInputOpen}
+                  containerClassName="bottom-10"
+                />
 
-                          <div className="flex-1 overflow-y-auto custom-scrollbar h-full pt-1">
-                            <style>{`
-                              .ProseMirror { outline: none; white-space: pre-wrap; word-break: break-word; color: #111827; min-height: 100%; }
-                              :is(.dark .ProseMirror) { color: #E4E6EB; }
-                              .ProseMirror p.is-editor-empty:first-child::before { color: #9ca3af; content: attr(data-placeholder); float: left; height: 0; pointer-events: none; }
-                              .ProseMirror p { margin: 0; }
-                            `}</style>
-                            <EditorContent editor={editor} className="h-full" />
-                          </div>
-                        </div>
-                      </form>
-                      <button
-                        onClick={handleTopLevelSubmit}
-                        disabled={!commentInput.trim() || isSubmitting}
-                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white font-bold rounded-xl text-[14px] transition-colors shrink-0 self-end h-[40px] flex items-center justify-center"
-                      >
-                        {isSubmitting ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <svg className="w-4 h-4 rotate-90" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>}
-                      </button>
-                    </div>
-                  </div>
+                {/* Bottom drag handle to expand comments box downwards */}
+                <div 
+                  onPointerDown={handleCommentsBoxResizeDown}
+                  onTouchStart={handleCommentsBoxTouchStart}
+                  className="w-full h-[38px] flex items-center justify-center cursor-ns-resize bg-gray-50 dark:bg-[#1E1F20] hover:bg-gray-100 dark:hover:bg-[#2A2B2D] active:bg-gray-200 dark:active:bg-[#333436] border-t border-gray-200 dark:border-[#3A3B3C] transition-colors group shrink-0 touch-none select-none rounded-none sm:rounded-b-2xl mt-auto z-20 active:cursor-grabbing"
+                  style={{ touchAction: "none" }}
+                  title={t("expandComments") || "Tarik ke bawah untuk memperbesar area komentar"}
+                >
+                  <div className="w-12 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600 group-hover:bg-purple-500 group-active:bg-purple-500 transition-colors pointer-events-none" />
                 </div>
               </div>
 
@@ -788,19 +1020,29 @@ export default function ClientProjectDetailPage({
                   
                   <div className="flex items-center justify-center gap-2 mt-6 w-fit mx-auto">
                     <div className="flex items-center gap-1 bg-white dark:bg-[#242526] px-3 py-1.5 rounded-full shadow-sm border border-gray-100 dark:border-[#3A3B3C]">
-                      {isInteractionLoading ? (
-                        <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 bg-gray-200 dark:bg-gray-700 animate-pulse rounded-full" />
-                          <div className="w-10 h-4 bg-gray-200 dark:bg-gray-700 animate-pulse rounded" />
-                        </div>
-                      ) : (
-                        <div className="flex items-center">
-                          <ProjectReactionListDropdown targetId={id} count={likeCount} />
-                          <ReactionButton myReaction={myReaction} onReact={handleLike} count={likeCount} containerClassName="!flex-none" />
-                        </div>
-                      )}
+                      <ProjectStarButtonDesktop
+                        isStarred={isProjectStarredByUser(myReaction)}
+                        starCount={likeCount}
+                        isLoading={isLikeLoading}
+                        isInteractionLoading={isInteractionLoading}
+                        onToggleStar={handleToggleStar}
+                        onOpenStargazers={(rect) => setStargazersAnchor(rect)}
+                      />
+                      <ProjectStarButtonMobile
+                        isStarred={isProjectStarredByUser(myReaction)}
+                        starCount={likeCount}
+                        isLoading={isLikeLoading}
+                        isInteractionLoading={isInteractionLoading}
+                        onToggleStar={handleToggleStar}
+                        onOpenStargazers={(rect) => setStargazersAnchor(rect)}
+                      />
                     </div>
-                    <button onClick={handleShare} className="flex shrink-0 items-center justify-center w-10 h-10 bg-white dark:bg-[#242526] rounded-2xl shadow-sm border border-gray-100 dark:border-[#3A3B3C] text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 transition-colors">
+                    <button 
+                      onClick={handleShare} 
+                      title={t("share") || "Bagikan"}
+                      aria-label={t("share") || "Bagikan"}
+                      className="flex shrink-0 items-center justify-center w-10 h-10 bg-white dark:bg-[#242526] rounded-2xl shadow-sm border border-gray-100 dark:border-[#3A3B3C] text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 transition-colors"
+                    >
                       <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
                     </button>
                   </div>
@@ -853,6 +1095,59 @@ export default function ClientProjectDetailPage({
           targetId={id}
         />
       )}
+
+      {/* Floating Stargazers Mini Popups (Desktop & Mobile) */}
+      {stargazersAnchor && (
+        <>
+          <ProjectStargazersPopupDesktop
+            isOpen={!!stargazersAnchor}
+            onClose={() => setStargazersAnchor(null)}
+            projectId={id}
+            projectTitle={project?.title}
+            anchorRect={stargazersAnchor}
+          />
+          <ProjectStargazersPopupMobile
+            isOpen={!!stargazersAnchor}
+            onClose={() => setStargazersAnchor(null)}
+            projectId={id}
+            projectTitle={project?.title}
+            anchorRect={stargazersAnchor}
+          />
+        </>
+      )}
+
+      {/* Mobile Comments Modal */}
+      <ProjectCommentsModalMobile
+        isOpen={isMobileCommentsOpen}
+        onClose={() => setIsMobileCommentsOpen(false)}
+        comments={comments}
+        isLoadingComments={isLoadingComments}
+        nextCursor={nextCursor}
+        fetchComments={fetchComments}
+        locale={locale}
+        t={t}
+        tGlobal={tGlobal}
+        router={router}
+        currentUser={user}
+        handleLikeComment={handleLikeComment}
+        handleReplyClick={handleReplyClick}
+        replyingTo={replyingTo}
+        setReplyingTo={setReplyingTo}
+        handleInlineSubmit={handleInlineSubmit}
+        handleTopLevelSubmit={handleTopLevelSubmit}
+        renderCommentContent={renderCommentContent}
+        editor={editor}
+        commentInput={commentInput}
+        isSubmitting={isSubmitting}
+        isEmojiOpen={isEmojiOpen}
+        setIsEmojiOpen={setIsEmojiOpen}
+        emojiRef={emojiRef}
+        isInputOpen={isInputOpen}
+        setIsInputOpen={setIsInputOpen}
+        isExpanded={isExpanded}
+        traceInfo={traceInfo}
+        setTraceInfo={setTraceInfo}
+      />
     </div>
   );
 }

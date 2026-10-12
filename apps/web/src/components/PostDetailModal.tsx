@@ -1031,9 +1031,49 @@ export default function PostDetailModal({ isOpen, onClose, post, currentUser, ta
 
   const handleLikeComment = async (commentId: string, reactionType: string = "LIKE") => {
     if (!currentUser) return;
+
+    setComments(prev => {
+      const updateReactionInList = (list: any[]): any[] => {
+        return list.map(c => {
+          if (c.id === commentId) {
+            const isRemoving = c.myReaction === reactionType;
+            const newReaction = isRemoving ? null : reactionType;
+            const currentLikes = c._count?.likes ?? 0;
+            const newLikes = isRemoving ? Math.max(0, currentLikes - 1) : (!c.myReaction ? currentLikes + 1 : currentLikes);
+
+            let newTopReactions = Array.isArray(c.topReactions) ? [...c.topReactions] : [];
+            if (!isRemoving && !newTopReactions.includes(reactionType)) {
+              newTopReactions = [reactionType, ...newTopReactions];
+            } else if (isRemoving && newLikes === 0) {
+              newTopReactions = newTopReactions.filter(r => r !== reactionType);
+            }
+
+            return {
+              ...c,
+              myReaction: newReaction,
+              topReactions: newTopReactions,
+              _count: {
+                ...(c._count || {}),
+                likes: newLikes,
+              }
+            };
+          }
+          if (c.optimisticReplies && c.optimisticReplies.length > 0) {
+            return { ...c, optimisticReplies: updateReactionInList(c.optimisticReplies) };
+          }
+          return c;
+        });
+      };
+      const updated = updateReactionInList(prev);
+      const existing = commentsCache.get(post.id);
+      if (existing) {
+        commentsCache.set(post.id, { ...existing, comments: updated });
+      }
+      return updated;
+    });
+
     try {
       await toggleLike(currentUser.id, "comment", commentId, reactionType);
-      // Optional: optimistic UI update for comment likes here
     } catch (error) {
       console.error("Error toggling comment like:", error);
     }

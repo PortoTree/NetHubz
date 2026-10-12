@@ -4,11 +4,9 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useTranslations, useLocale } from "next-intl";
 import Link from "next/link";
 import { MediaRenderer } from "@/components/MediaRenderer";
-import { CATEGORY_COLORS, getCategoryBadgeClasses } from "@/components/ProjectCard";
+import { CATEGORY_COLORS, getCategoryBadgeClasses, getStatusBadgeClasses } from "@/components/ProjectCard";
 
-import { ReactionButton, ReactionType, REACTION_CONFIG } from "./ReactionButton";
-import { ReactionSummaryPopup } from "./ReactionSummaryPopup";
-import { checkInteractionState, toggleLike, incrementShareCount, toggleSave } from "@/app/actions/interactions";
+import { checkInteractionState, toggleLike, incrementShareCount, toggleSave, checkBatchProjectInteractionState } from "@/app/actions/interactions";
 import toast from "react-hot-toast";
 import { interactionsCache } from "@/utils/cache";
 import Image from "next/image";
@@ -16,9 +14,21 @@ import { useShareModal } from "@/contexts/ShareContext";
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
 import NProgress from "nprogress";
+import ProjectStarButtonDesktop from "./ProjectStarButtonDesktop";
+import ProjectStarButtonMobile from "./ProjectStarButtonMobile";
+import ProjectStargazersPopupDesktop from "./ProjectStargazersPopupDesktop";
+import ProjectStargazersPopupMobile from "./ProjectStargazersPopupMobile";
+import {
+  calculateOptimisticStar,
+  isProjectStarredByUser,
+  getClientTokenUser,
+  resolveInteractionUserKey,
+  RectLike,
+  invalidateStargazersCache,
+} from "@/utils/projectStar";
 
 
-const ShowcaseCard = ({ p, locale, t, tHub, CATEGORY_COLORS, getCategoryBadgeClasses, statusBadgeClass, statusKey }: any) => {
+const ShowcaseCard = ({ p, locale, t, tHub, CATEGORY_COLORS, getCategoryBadgeClasses, statusKey, currentUser, currentUserId, onOpenStargazers }: any) => {
   const router = useRouter();
   const { openShareModal } = useShareModal();
   const cover = p.coverUrls?.[0] || p.mediaUrls?.[0];
@@ -26,63 +36,76 @@ const ShowcaseCard = ({ p, locale, t, tHub, CATEGORY_COLORS, getCategoryBadgeCla
   const displayName = p.user?.profile?.displayName || username;
   const avatarUrl = p.user?.profile?.avatarUrl;
 
-  const [user, setUser] = useState<any>(null);
-  const [isUserLoaded, setIsUserLoaded] = useState(false);
+  const [user, setUser] = useState<any>(() => {
+    if (currentUser) return currentUser;
+    if (typeof window !== "undefined") {
+      return getClientTokenUser();
+    }
+    return null;
+  });
+  const [isUserLoaded, setIsUserLoaded] = useState(true);
   const [isLikeLoading, setIsLikeLoading] = useState(false);
   const [isInteractionLoading, setIsInteractionLoading] = useState(true);
-  const [myReaction, setMyReaction] = useState<ReactionType | null>(null);
+  const [myReaction, setMyReaction] = useState<string | null>(null);
   const [likeCount, setLikeCount] = useState(p._count?.likes || 0);
   const [commentCount, setCommentCount] = useState(p._count?.comments || 0);
-  const [topReactions, setTopReactions] = useState<ReactionType[]>(p.topReactions || []);
   const [isSaved, setIsSaved] = useState(false);
   const [isSaveLoading, setIsSaveLoading] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split(".")[1]));
-        const userId = payload.sub || payload.id || payload._id || payload.userId || "1";
-        setUser({ id: userId, username: payload.username || "Guest" });
-      } catch (e) {}
+    if (currentUser) {
+      setUser(currentUser);
+    } else if (typeof window !== "undefined" && !user) {
+      const cu = getClientTokenUser();
+      if (cu) setUser(cu);
     }
-    setIsUserLoaded(true);
-  }, []);
+  }, [currentUser, user]);
 
   const loadInteractions = useCallback(() => {
     if (!isUserLoaded) return;
-    if (!user) {
+    const hasToken = typeof window !== "undefined" && !!localStorage.getItem("token");
+    const activeUserId = currentUserId || currentUser?.id || user?.id || (typeof window !== "undefined" ? getClientTokenUser()?.id : undefined);
+
+    const userKey = resolveInteractionUserKey(activeUserId, hasToken);
+
+    if (!userKey) {
+      setIsInteractionLoading(true);
+      return;
+    }
+
+    const cacheKey = `interaction_project_${p.id}_${userKey}`;
+    if (interactionsCache.has(cacheKey)) {
+      const cached = interactionsCache.get(cacheKey);
+      setMyReaction(cached.myReaction || null);
+      setLikeCount(cached.likeCount ?? p._count?.likes ?? 0);
+      setCommentCount(cached.commentCount ?? p._count?.comments ?? 0);
+      setIsSaved(cached.hasSaved || false);
       setIsInteractionLoading(false);
       return;
     }
-    const cacheKey = `interaction_project_${p.id}_${user?.id || 'guest'}`;
-    if (interactionsCache.has(cacheKey)) {
-      const cached = interactionsCache.get(cacheKey);
-      setMyReaction(cached.myReaction);
-      setLikeCount(cached.likeCount);
-      setTopReactions(cached.topReactions || []);
-      setCommentCount(cached.commentCount);
-      setIsSaved(cached.hasSaved || false);
+
+    if (userKey === "guest") {
+      setMyReaction(null);
+      setLikeCount(p._count?.likes ?? 0);
+      setCommentCount(p._count?.comments ?? 0);
+      setIsSaved(false);
       setIsInteractionLoading(false);
-    } else {
-      setIsInteractionLoading(true);
+      return;
     }
-    
+
+    setIsInteractionLoading(true);
     import("@/utils/interactionBatcher").then(({ fetchProjectInteraction }) => {
-      fetchProjectInteraction(user?.id, p.id).then(interaction => {
+      fetchProjectInteraction(activeUserId, p.id).then(interaction => {
         if (interaction && interaction.success) {
-          setMyReaction(interaction.myReaction as ReactionType | null);
+          setMyReaction((interaction.myReaction as string | null) || null);
           setLikeCount(interaction.likeCount || 0);
-          if (interaction.topReactions) {
-            setTopReactions(interaction.topReactions as ReactionType[]);
-          }
           setCommentCount(interaction.commentCount || 0);
           setIsSaved(interaction.hasSaved || false);
         }
         setIsInteractionLoading(false);
-      });
+      }).catch(() => setIsInteractionLoading(false));
     });
-  }, [p.id, user?.id, isUserLoaded]);
+  }, [p.id, p._count, currentUserId, currentUser?.id, user?.id, isUserLoaded]);
 
   useEffect(() => {
     loadInteractions();
@@ -91,48 +114,40 @@ const ShowcaseCard = ({ p, locale, t, tHub, CATEGORY_COLORS, getCategoryBadgeCla
     return () => window.removeEventListener("refresh_projects", handleRefresh);
   }, [loadInteractions]);
 
-  const handleLike = async (reactionType: ReactionType = "LIKE") => {
-    if (!user || isLikeLoading) {
-      if (!user) router.push(`/${locale}/login`);
+  const handleToggleStar = async () => {
+    const activeUserId = currentUserId || currentUser?.id || user?.id || (typeof window !== "undefined" ? getClientTokenUser()?.id : undefined);
+    if (!activeUserId) {
+      router.push(`/${locale}/login`);
       return;
     }
+    if (isLikeLoading) return;
     setIsLikeLoading(true);
-    const prevReaction = myReaction;
-    const isSameReaction = prevReaction === reactionType;
-    const isRemovingLike = prevReaction && isSameReaction;
-    const isAddingLike = !prevReaction;
 
-    const cacheKey = `interaction_project_${p.id}_${user.id}`;
-    let newLikeCount = likeCount;
-    let newReaction = isRemovingLike ? null : reactionType;
-    let newTopReactions = topReactions;
+    const prevStarred = isProjectStarredByUser(myReaction);
+    const next = calculateOptimisticStar({ isStarred: prevStarred, starCount: likeCount });
 
-    if (isRemovingLike) {
-      newLikeCount = Math.max(0, likeCount - 1);
-    } else {
-      if (isAddingLike) newLikeCount = likeCount + 1;
-      if (isAddingLike || reactionType !== prevReaction) {
-        newTopReactions = [reactionType, ...topReactions.filter((r: any) => r !== reactionType)];
-      }
-    }
-    
-    setMyReaction(newReaction);
-    setLikeCount(newLikeCount);
-    setTopReactions(newTopReactions);
-    
+    const cacheKey = `interaction_project_${p.id}_${activeUserId}`;
+    setMyReaction(next.isStarred ? "STAR" : null);
+    setLikeCount(next.starCount);
+
     interactionsCache.set(cacheKey, {
       ...interactionsCache.get(cacheKey),
-      myReaction: newReaction,
-      likeCount: newLikeCount,
-      topReactions: newTopReactions
+      myReaction: next.isStarred ? "STAR" : null,
+      likeCount: next.starCount,
     });
+    invalidateStargazersCache(p.id);
 
     try {
-      await toggleLike(user.id, "project", p.id, reactionType);
+      await toggleLike(activeUserId, "project", p.id, "STAR");
       window.dispatchEvent(new Event("refresh_projects"));
     } catch (e) {
-      setMyReaction(prevReaction);
-      setLikeCount(isRemovingLike ? newLikeCount + 1 : isAddingLike ? Math.max(0, newLikeCount - 1) : newLikeCount);
+      setMyReaction(prevStarred ? "STAR" : null);
+      setLikeCount(likeCount);
+      interactionsCache.set(cacheKey, {
+        ...interactionsCache.get(cacheKey),
+        myReaction: prevStarred ? "STAR" : null,
+        likeCount: likeCount,
+      });
     } finally {
       setIsLikeLoading(false);
     }
@@ -280,19 +295,19 @@ const ShowcaseCard = ({ p, locale, t, tHub, CATEGORY_COLORS, getCategoryBadgeCla
             </Link>
             <div className="flex flex-wrap items-center gap-1.5 mt-1 sm:mt-1.5 relative z-10">
               {p.category && (
-                <span className={getCategoryBadgeClasses(CATEGORY_COLORS[p.category] || "blue") + " text-[10px] sm:text-[11px] px-2 py-0.5"}>
+                <span className={getCategoryBadgeClasses(CATEGORY_COLORS[p.category] || "blue")}>
                   {p.category === "OTHER" ? p.customCategory : t(`cat_${p.category}` as any)}
                 </span>
               )}
               {p.isForSale && (
-                <span className="inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xs">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   FOR SALE
                 </span>
               )}
             </div>
           </div>
-          <span className={statusBadgeClass(p.status) + " relative z-10 shrink-0 text-[10px] sm:text-[11px] px-2 sm:px-2.5 py-0.5 sm:py-1 mt-0.5"}>
+          <span className={getStatusBadgeClasses(p.status) + " relative z-10 shrink-0 text-[10px] sm:text-[11px] px-2 sm:px-2.5 py-0.5 sm:py-1 mt-0.5"}>
             {t(statusKey(p.status))}
           </span>
         </div>
@@ -302,9 +317,9 @@ const ShowcaseCard = ({ p, locale, t, tHub, CATEGORY_COLORS, getCategoryBadgeCla
         </p>
 
         <div className="mt-auto">
-          <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
-            <div className="flex flex-wrap gap-1 sm:gap-1.5">
-              {p.techStack?.length > 0 && p.techStack.slice(0, 3).map((tech: string) => (
+          {p.techStack?.length > 0 && (
+            <div className="flex flex-wrap gap-1 sm:gap-1.5 mb-3 sm:mb-4">
+              {p.techStack.slice(0, 3).map((tech: string) => (
                 <span
                   key={tech}
                   className="px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-medium transition-colors bg-gray-100 text-gray-600 dark:bg-[#3A3B3C] dark:text-[#E4E6EB]"
@@ -312,49 +327,13 @@ const ShowcaseCard = ({ p, locale, t, tHub, CATEGORY_COLORS, getCategoryBadgeCla
                   {tech}
                 </span>
               ))}
-              {p.techStack?.length > 3 && (
+              {p.techStack.length > 3 && (
                 <span className="px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-medium bg-gray-100 text-gray-600 dark:bg-[#3A3B3C] dark:text-[#E4E6EB]">
                   +{p.techStack.length - 3}
                 </span>
               )}
             </div>
-            
-            {/* React Summary Popup - Aligned right */}
-            <div className="flex items-center gap-1 sm:gap-1.5 cursor-pointer hover:underline text-[#65676B] dark:text-[#B0B3B8] text-[13px] sm:text-[15px] relative z-10 shrink-0">
-              {isInteractionLoading ? (
-                <div className="flex items-center gap-1.5">
-                  <div className="flex -space-x-1">
-                    <div className="w-[16px] h-[16px] sm:w-[18px] sm:h-[18px] rounded-full bg-gray-200 dark:bg-[#3A3B3C] animate-pulse relative z-10 border-2 border-white dark:border-[#242526]"></div>
-                    <div className="w-[16px] h-[16px] sm:w-[18px] sm:h-[18px] rounded-full bg-gray-200 dark:bg-[#3A3B3C] animate-pulse relative z-0 border-2 border-white dark:border-[#242526]"></div>
-                  </div>
-                  <div className="w-3.5 h-3.5 bg-gray-200 dark:bg-[#3A3B3C] animate-pulse rounded"></div>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center -space-x-1 z-0">
-                    {topReactions.length > 0 ? (
-                      topReactions.slice(0, 3).map((r) => (
-                        <ReactionSummaryPopup key={r} targetId={p.id} targetType="PROJECT" likeCount={likeCount} topReactions={topReactions} filterReactionType={r}>
-                          <div className="w-[16px] h-[16px] sm:w-[18px] sm:h-[18px] rounded-full bg-white dark:bg-[#242526] relative z-10 flex items-center justify-center shadow-xs hover:z-20 hover:opacity-80 transition-opacity">
-                             <Image src={REACTION_CONFIG[r].src} alt={r} fill className="object-contain" />
-                          </div>
-                        </ReactionSummaryPopup>
-                      ))
-                    ) : likeCount > 0 ? (
-                      <ReactionSummaryPopup targetId={p.id} targetType="PROJECT" likeCount={likeCount} topReactions={topReactions}>
-                        <div className="w-[16px] h-[16px] sm:w-[18px] sm:h-[18px] rounded-full bg-blue-500 flex items-center justify-center shadow-xs hover:z-20 hover:opacity-80 transition-opacity">
-                          <svg className="w-2 sm:w-2.5 h-2 sm:h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
-                          </svg>
-                        </div>
-                      </ReactionSummaryPopup>
-                    ) : null}
-                  </div>
-                  {likeCount > 0 && <span className="font-medium text-[12px] sm:text-[14px]" onClick={(e) => { e.stopPropagation(); NProgress.start(); router.push(`/${locale}/project/${username}/${p.id}`); }}>{likeCount}</span>}
-                </>
-              )}
-            </div>
-          </div>
+          )}
 
           <div className="flex items-center justify-between pt-2.5 sm:pt-3 border-t border-gray-100 dark:border-[#3A3B3C] gap-2">
             <Link href={`/${locale}/project/${username}`} className="flex items-center gap-2 group/user relative z-10 min-w-0">
@@ -375,13 +354,35 @@ const ShowcaseCard = ({ p, locale, t, tHub, CATEGORY_COLORS, getCategoryBadgeCla
             </Link>
 
             <div className="flex items-center gap-1 sm:gap-2.5 relative z-10 shrink-0" onClick={(e) => e.stopPropagation()}>
-              {isInteractionLoading ? (
-                <div className="w-[60px] sm:w-[84px] h-[18px] bg-gray-200 dark:bg-[#3A3B3C] animate-pulse rounded"></div>
-              ) : (
-                <ReactionButton myReaction={myReaction} onReact={handleLike} count={0} containerClassName="!flex-none" className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-purple-600 dark:text-gray-400 dark:hover:bg-[#3A3B3C] dark:hover:text-purple-400 transition-colors font-medium text-[11px] sm:text-[13px] bg-transparent" />
-              )}
+              <ProjectStarButtonDesktop
+                isStarred={isProjectStarredByUser(myReaction)}
+                starCount={likeCount}
+                isLoading={isLikeLoading}
+                isInteractionLoading={isInteractionLoading}
+                onToggleStar={handleToggleStar}
+                onOpenStargazers={(rect) => onOpenStargazers?.(p.id, p.title, rect)}
+              />
+              <ProjectStarButtonMobile
+                isStarred={isProjectStarredByUser(myReaction)}
+                starCount={likeCount}
+                isLoading={isLikeLoading}
+                isInteractionLoading={isInteractionLoading}
+                onToggleStar={handleToggleStar}
+                onOpenStargazers={(rect) => onOpenStargazers?.(p.id, p.title, rect)}
+              />
               
-              <Link href={`/${locale}/project/${username}/${p.id}#comments`} className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-purple-600 dark:text-gray-400 dark:hover:bg-[#3A3B3C] dark:hover:text-purple-400 transition-colors font-medium text-[11px] sm:text-[13px] bg-transparent">
+              <button 
+                onClick={() => {
+                  if (typeof window !== "undefined" && (window as any).NProgress) (window as any).NProgress.start();
+                  const isMobile = typeof window !== "undefined" && window.innerWidth < 1024;
+                  const targetUrl = isMobile 
+                    ? `/${locale}/project/${username}/${p.id}?openComments=true` 
+                    : `/${locale}/project/${username}/${p.id}#comments`;
+                  router.push(targetUrl);
+                }}
+                className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-purple-600 dark:text-gray-400 dark:hover:bg-[#3A3B3C] dark:hover:text-purple-400 transition-colors font-medium text-[11px] sm:text-[13px] bg-transparent"
+                title={t("comment") || "Komentar"}
+              >
                 <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                 <span className="hidden xs:inline">{t("comment")}</span>
                 {isInteractionLoading ? (
@@ -389,7 +390,7 @@ const ShowcaseCard = ({ p, locale, t, tHub, CATEGORY_COLORS, getCategoryBadgeCla
                 ) : commentCount > 0 ? (
                   <span className="ml-0.5 text-gray-400 dark:text-gray-500 font-semibold">{commentCount}</span>
                 ) : null}
-              </Link>
+              </button>
               
               <button onClick={handleShare} className="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-1 sm:py-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-purple-600 dark:text-gray-400 dark:hover:bg-[#3A3B3C] dark:hover:text-purple-400 transition-colors font-medium text-[11px] sm:text-[13px] bg-transparent">
                 <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
@@ -431,8 +432,55 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
   const [showStickyCategories, setShowStickyCategories] = useState(false);
   const [isScrolledPastHero, setIsScrolledPastHero] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [stargazersTarget, setStargazersTarget] = useState<{
+    projectId: string;
+    projectTitle?: string;
+    anchorRect: RectLike;
+  } | null>(null);
   const staticHeaderRef = useRef<HTMLDivElement>(null);
   const stickyCarouselRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const u = getClientTokenUser();
+      setCurrentUser(u);
+    }
+  }, []);
+
+  useEffect(() => {
+    const hasToken = typeof window !== "undefined" && !!localStorage.getItem("token");
+    const activeUserId = currentUser?.id || (typeof window !== "undefined" ? getClientTokenUser()?.id : undefined);
+    const currentUserKey = resolveInteractionUserKey(activeUserId, hasToken);
+
+    if (!currentUserKey || !projects?.length) return;
+
+    const uncachedIds = projects
+      .map((p: any) => p.id)
+      .filter((id: string) => !interactionsCache.has(`interaction_project_${id}_${currentUserKey}`));
+
+    if (!uncachedIds.length) return;
+
+    checkBatchProjectInteractionState(activeUserId, uncachedIds)
+      .then((batchResult: Record<string, any>) => {
+        for (const id of uncachedIds) {
+          const data = batchResult[id];
+          if (data) {
+            interactionsCache.set(`interaction_project_${id}_${currentUserKey}`, {
+              myReaction: data.myReaction,
+              likeCount: data.likeCount,
+              commentCount: data.commentCount,
+              topReactions: data.topReactions,
+              hasSaved: data.hasSaved,
+            });
+          }
+        }
+        window.dispatchEvent(new Event("refresh_projects"));
+      })
+      .catch((err) => {
+        console.error("Batch interaction error:", err);
+      });
+  }, [currentUser?.id, projects]);
 
   useEffect(() => {
     setMounted(true);
@@ -647,22 +695,8 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
     );
   }, [search, activeCreators]);
 
-  const statusBadgeClass = (status: string) =>
-    "shrink-0 px-2.5 py-1 rounded-md text-[11px] font-semibold " +
-    (status === "RELEASED"
-      ? "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400"
-      : status === "IN_PROGRESS"
-        ? "bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400"
-        : status === "OPEN_SOURCE"
-          ? "bg-white dark:bg-[#242526] text-gray-700 dark:text-gray-300 border border-dashed border-gray-400 dark:border-gray-500"
-          : status === "SEARCHING_TEAM"
-            ? "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300"
-            : status === "HIATUS"
-              ? "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400"
-              : "bg-gray-100 text-gray-700");
-
   const statusKey = (status: string) =>
-    ({ RELEASED: "statusReleased", IN_PROGRESS: "statusInProgress", OPEN_SOURCE: "statusOpenSource", SEARCHING_TEAM: "statusSearchingTeam" } as Record<string, string>)[status] || "statusReleased";
+    ({ RELEASED: "statusReleased", IN_PROGRESS: "statusInProgress", OPEN_SOURCE: "statusOpenSource", SEARCHING_TEAM: "statusSearchingTeam", HIATUS: "statusHiatus" } as Record<string, string>)[status] || "statusReleased";
 
   return (
     <div className="flex flex-col gap-4 sm:gap-6 w-full pb-16 overflow-x-hidden">
@@ -924,15 +958,15 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                               @{user.username}
                             </span>
                             <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-[10px] font-medium shrink-0 opacity-70 group-hover/creator:opacity-100 transition-opacity">
-                              <div className="flex items-center gap-0.5" title="Projects">
+                              <div className="flex items-center gap-0.5" title={t("projects")}>
                                 <svg className="w-[11px] h-[11px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
                                 {user.totalProjects}
                               </div>
-                              <div className="flex items-center gap-0.5" title="Reactions">
-                                <img src="/react.svg" alt="Reactions" className="w-[11px] h-[11px] opacity-70 dark:invert" />
+                              <div className="flex items-center gap-0.5" title={t("stars")}>
+                                <img src="/star-label.svg" alt={t("stars")} className="w-[11px] h-[11px] opacity-70 dark:invert shrink-0" />
                                 {user.totalLikes}
                               </div>
-                              <div className="flex items-center gap-0.5" title="Comments">
+                              <div className="flex items-center gap-0.5" title={t("comments")}>
                                 <svg className="w-[11px] h-[11px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                                 {user.totalComments}
                               </div>
@@ -1036,15 +1070,15 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                               @{creator.username}
                             </span>
                             <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-[10px] font-medium shrink-0 opacity-70 group-hover/creator:opacity-100 transition-opacity">
-                              <div className="flex items-center gap-0.5" title="Projects">
+                              <div className="flex items-center gap-0.5" title={t("projects")}>
                                 <svg className="w-[11px] h-[11px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
                                 {creator.totalProjects}
                               </div>
-                              <div className="flex items-center gap-0.5" title="Reactions">
-                                <img src="/react.svg" alt="Reactions" className="w-[11px] h-[11px] opacity-70 dark:invert" />
+                              <div className="flex items-center gap-0.5" title={t("stars")}>
+                                <img src="/star-label.svg" alt={t("stars")} className="w-[11px] h-[11px] opacity-70 dark:invert shrink-0" />
                                 {creator.totalLikes}
                               </div>
-                              <div className="flex items-center gap-0.5" title="Comments">
+                              <div className="flex items-center gap-0.5" title={t("comments")}>
                                 <svg className="w-[11px] h-[11px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                                 {creator.totalComments}
                               </div>
@@ -1100,8 +1134,14 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                   tHub={tHub}
                   CATEGORY_COLORS={CATEGORY_COLORS}
                   getCategoryBadgeClasses={getCategoryBadgeClasses}
-                  statusBadgeClass={statusBadgeClass}
                   statusKey={statusKey}
+                  currentUser={currentUser}
+                  currentUserId={currentUser?.id}
+                  onOpenStargazers={(projectId: string, projectTitle?: string, anchorRect?: RectLike) => {
+                    if (anchorRect) {
+                      setStargazersTarget({ projectId, projectTitle, anchorRect });
+                    }
+                  }}
                 />
               ))}
             </div>
@@ -1298,15 +1338,15 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                               @{user.username}
                             </span>
                             <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-[10px] font-medium shrink-0 opacity-70 group-hover/creator:opacity-100 transition-opacity">
-                              <div className="flex items-center gap-0.5" title="Projects">
+                              <div className="flex items-center gap-0.5" title={t("projects")}>
                                 <svg className="w-[11px] h-[11px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
                                 {user.totalProjects}
                               </div>
-                              <div className="flex items-center gap-0.5" title="Reactions">
-                                <img src="/react.svg" alt="Reactions" className="w-[11px] h-[11px] opacity-70 dark:invert" />
+                              <div className="flex items-center gap-0.5" title={t("stars")}>
+                                <img src="/star-label.svg" alt={t("stars")} className="w-[11px] h-[11px] opacity-70 dark:invert shrink-0" />
                                 {user.totalLikes}
                               </div>
-                              <div className="flex items-center gap-0.5" title="Comments">
+                              <div className="flex items-center gap-0.5" title={t("comments")}>
                                 <svg className="w-[11px] h-[11px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                                 {user.totalComments}
                               </div>
@@ -1360,15 +1400,15 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
                             @{creator.username}
                           </span>
                           <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-[10px] font-medium shrink-0 opacity-70 group-hover/creator:opacity-100 transition-opacity">
-                            <div className="flex items-center gap-0.5" title="Projects">
+                            <div className="flex items-center gap-0.5" title={t("projects")}>
                               <svg className="w-[11px] h-[11px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
                               {creator.totalProjects}
                             </div>
-                            <div className="flex items-center gap-0.5" title="Reactions">
-                              <img src="/react.svg" alt="Reactions" className="w-[11px] h-[11px] opacity-70 dark:invert" />
+                            <div className="flex items-center gap-0.5" title={t("stars")}>
+                              <img src="/star-label.svg" alt={t("stars")} className="w-[11px] h-[11px] opacity-70 dark:invert shrink-0" />
                               {creator.totalLikes}
                             </div>
-                            <div className="flex items-center gap-0.5" title="Comments">
+                            <div className="flex items-center gap-0.5" title={t("comments")}>
                               <svg className="w-[11px] h-[11px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                               {creator.totalComments}
                             </div>
@@ -1383,6 +1423,26 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
           </div>
         </div>
       </div>
+
+      {/* Floating Stargazers Mini Popups (Desktop & Mobile, rendered at root container level) */}
+      {stargazersTarget && (
+        <>
+          <ProjectStargazersPopupDesktop
+            isOpen={!!stargazersTarget}
+            onClose={() => setStargazersTarget(null)}
+            projectId={stargazersTarget.projectId}
+            projectTitle={stargazersTarget.projectTitle}
+            anchorRect={stargazersTarget.anchorRect}
+          />
+          <ProjectStargazersPopupMobile
+            isOpen={!!stargazersTarget}
+            onClose={() => setStargazersTarget(null)}
+            projectId={stargazersTarget.projectId}
+            projectTitle={stargazersTarget.projectTitle}
+            anchorRect={stargazersTarget.anchorRect}
+          />
+        </>
+      )}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { getProjectById } from "@/app/actions/projects";
 import ClientProjectDetailPage from "./ClientProjectDetailPage";
 import { notFound } from "next/navigation";
@@ -25,11 +26,13 @@ export default async function ProjectDetailsPage({
   }
 
   return (
-    <ClientProjectDetailPage 
-      locale={locale} 
-      username={decodedUsername}
-      id={id}
-      initialProject={project} 
-    />
+    <Suspense fallback={null}>
+      <ClientProjectDetailPage 
+        locale={locale} 
+        username={decodedUsername}
+        id={id}
+        initialProject={project} 
+      />
+    </Suspense>
   );
 }

@@ -459,10 +459,12 @@ export async function getLikers(targetId: string, targetType: "POST" | "COMMENT"
         include: {
           user: {
             select: {
+              id: true,
               username: true,
               profile: {
                 select: {
                   displayName: true,
+                  avatarUrl: true,
                 }
               }
             }

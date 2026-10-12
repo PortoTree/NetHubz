@@ -18,6 +18,7 @@ interface CommentInputProps {
   emojiRef: React.RefObject<HTMLDivElement | null>;
   isOpen: boolean;
   setIsOpen: (val: boolean) => void;
+  containerClassName?: string;
 }
 
 export default function CommentInput({
@@ -32,6 +33,7 @@ export default function CommentInput({
   emojiRef,
   isOpen,
   setIsOpen,
+  containerClassName,
 }: CommentInputProps) {
   const t = useTranslations();
   const [editorHeight, setEditorHeight] = useState(38); // base height for a single line text
@@ -101,7 +103,7 @@ export default function CommentInput({
   }, [editorHeight]);
 
   return (
-    <div className="absolute bottom-4 left-4 right-4 z-50 flex items-end justify-end gap-2 md:gap-3 pointer-events-none">
+    <div className={`absolute ${containerClassName || "bottom-4"} left-4 right-4 z-50 flex items-end justify-end gap-2 md:gap-3 pointer-events-none`}>
       {/* The sliding input box */}
       <div 
         className={`pointer-events-auto flex flex-col items-end transition-all duration-300 origin-right flex-1 ${

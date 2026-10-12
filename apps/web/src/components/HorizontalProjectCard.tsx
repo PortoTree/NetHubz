@@ -5,24 +5,36 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { MediaRenderer } from "@/components/MediaRenderer";
-import { CATEGORY_COLORS, getCategoryBadgeClasses } from "@/components/ProjectCard";
+import { CATEGORY_COLORS, getCategoryBadgeClasses, getStatusBadgeClasses } from "@/components/ProjectCard";
 import { useUser } from "@/contexts/UserContext";
-import { toggleLike, toggleSave, incrementShareCount, checkInteractionState } from "@/app/actions/interactions";
+import { toggleLike, toggleSave, checkInteractionState } from "@/app/actions/interactions";
 import toast from "react-hot-toast";
 import { interactionsCache } from "@/utils/cache";
 import SaveToFolderModal from "./SaveToFolderModal";
-import { ReactionButton, ReactionType, REACTION_CONFIG } from "./ReactionButton";
-import { ReactionSummaryPopup } from "./ReactionSummaryPopup";
-import Image from "next/image";
 import { useShareModal } from "@/contexts/ShareContext";
+import ProjectStarButtonDesktop from "./ProjectStarButtonDesktop";
+import ProjectStarButtonMobile from "./ProjectStarButtonMobile";
+import ProjectStargazersPopupDesktop from "./ProjectStargazersPopupDesktop";
+import ProjectStargazersPopupMobile from "./ProjectStargazersPopupMobile";
+import {
+  calculateOptimisticStar,
+  isProjectStarredByUser,
+  getClientTokenUser,
+  resolveInteractionUserKey,
+  RectLike,
+  invalidateStargazersCache,
+} from "@/utils/projectStar";
 
 interface HorizontalProjectCardProps {
   project: any;
   locale: string;
   username: string;
   isOwnProfile?: boolean;
+  currentUser?: any;
+  currentUserId?: string;
   onEdit?: (project: any) => void;
   onDelete?: (project: any) => void;
+  disableAutoFetch?: boolean;
 }
 
 export default function HorizontalProjectCard({
@@ -30,57 +42,107 @@ export default function HorizontalProjectCard({
   locale,
   username,
   isOwnProfile,
+  currentUser: currentUserProp,
+  currentUserId,
   onEdit,
   onDelete,
+  disableAutoFetch = false,
 }: HorizontalProjectCardProps) {
   const router = useRouter();
   const { openShareModal } = useShareModal();
   const tProject = useTranslations("project");
   const tGlobal = useTranslations();
-  const { currentUser } = useUser();
+  const { currentUser: contextUser } = useUser();
+  const effectiveCurrentUser = currentUserProp || contextUser;
+
+  const [user, setUser] = useState<any>(() => {
+    if (effectiveCurrentUser) return effectiveCurrentUser;
+    if (typeof window !== "undefined") {
+      return getClientTokenUser();
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (effectiveCurrentUser) {
+      setUser(effectiveCurrentUser);
+    } else if (typeof window !== "undefined") {
+      const tokenUser = getClientTokenUser();
+      if (tokenUser) setUser(tokenUser);
+    }
+  }, [effectiveCurrentUser]);
+
+  const activeUserId = currentUserId || effectiveCurrentUser?.id || user?.id || (typeof window !== "undefined" ? getClientTokenUser()?.id : undefined);
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   
   const [isInteractionLoading, setIsInteractionLoading] = useState(true);
-  const [myReaction, setMyReaction] = useState<ReactionType | null>(null);
-  const [likeCount, setLikeCount] = useState(p._count?.likes || 0);
-  const [topReactions, setTopReactions] = useState<ReactionType[]>(p.topReactions || []);
+  const [myReaction, setMyReaction] = useState<string | null>(null);
+  const [likeCount, setLikeCount] = useState(p._count?.likes ?? p.likeCount ?? 0);
+  const [commentCount, setCommentCount] = useState(
+    p.comments ? p.comments.filter((c: any) => !c.parentId).length : (p._count?.comments ?? p.commentCount ?? 0)
+  );
   const [isLikeLoading, setIsLikeLoading] = useState(false);
 
-  const [isSaved, setIsSaved] = useState(p.savedBy?.some((s: any) => s.userId === currentUser?.id) || false);
+  const [isSaved, setIsSaved] = useState(p.savedBy?.some((s: any) => s.userId === activeUserId) || false);
   const [isSaveLoading, setIsSaveLoading] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
+  const [stargazersAnchor, setStargazersAnchor] = useState<RectLike | null>(null);
 
   const loadInteractions = useCallback(() => {
-    if (!currentUser) {
+    const hasToken = typeof window !== "undefined" && !!localStorage.getItem("token");
+    const resolvedActiveUserId = currentUserId || effectiveCurrentUser?.id || user?.id || (typeof window !== "undefined" ? getClientTokenUser()?.id : undefined);
+
+    const userKey = resolveInteractionUserKey(resolvedActiveUserId, hasToken);
+
+    if (!userKey) {
+      setIsInteractionLoading(true);
+      return;
+    }
+
+    const cacheKey = `interaction_project_${p.id}_${userKey}`;
+    if (interactionsCache.has(cacheKey)) {
+      const cached = interactionsCache.get(cacheKey);
+      setMyReaction(cached.myReaction || null);
+      setLikeCount(cached.likeCount ?? p._count?.likes ?? p.likeCount ?? 0);
+      if (cached.commentCount !== undefined) {
+        setCommentCount(cached.commentCount);
+      }
+      setIsSaved(cached.hasSaved || false);
       setIsInteractionLoading(false);
       return;
     }
-    const cacheKey = `interaction_project_${p.id}_${currentUser.id}`;
-    if (interactionsCache.has(cacheKey)) {
-      const cached = interactionsCache.get(cacheKey);
-      setMyReaction(cached.myReaction);
-      setLikeCount(cached.likeCount);
-      setTopReactions(cached.topReactions || []);
-      setIsSaved(cached.hasSaved || false);
+
+    if (userKey === "guest") {
+      setMyReaction(null);
+      setLikeCount(p._count?.likes ?? p.likeCount ?? 0);
+      setCommentCount(p.comments ? p.comments.filter((c: any) => !c.parentId).length : (p._count?.comments ?? p.commentCount ?? 0));
+      setIsSaved(false);
       setIsInteractionLoading(false);
-    } else {
-      setIsInteractionLoading(true);
+      return;
     }
-    
-    import("@/utils/interactionBatcher").then(({ fetchProjectInteraction }) => {
-      fetchProjectInteraction(currentUser.id, p.id).then(interaction => {
-        if (interaction && interaction.success) {
-          setMyReaction(interaction.myReaction as ReactionType | null);
-          setLikeCount(interaction.likeCount || 0);
-          if (interaction.topReactions) {
-            setTopReactions(interaction.topReactions as ReactionType[]);
-          }
-          setIsSaved(interaction.hasSaved || false);
+
+    setIsInteractionLoading(true);
+    checkInteractionState(resolvedActiveUserId, "project", p.id).then(interaction => {
+      if (interaction && interaction.success) {
+        setMyReaction((interaction.myReaction as string | null) || null);
+        setLikeCount(interaction.likeCount || 0);
+        if (interaction.commentCount !== undefined) {
+          setCommentCount(interaction.commentCount);
         }
-        setIsInteractionLoading(false);
-      });
-    });
-  }, [p.id, currentUser]);
+        setIsSaved(interaction.hasSaved || false);
+        const existing = interactionsCache.get(cacheKey) || {};
+        interactionsCache.set(cacheKey, {
+          ...existing,
+          myReaction: interaction.myReaction || null,
+          likeCount: interaction.likeCount || 0,
+          commentCount: interaction.commentCount ?? commentCount,
+          hasSaved: interaction.hasSaved || false
+        });
+      }
+      setIsInteractionLoading(false);
+    }).catch(() => setIsInteractionLoading(false));
+  }, [p.id, p._count, p.likeCount, p.comments, p.commentCount, currentUserId, effectiveCurrentUser?.id, user?.id]);
 
   useEffect(() => {
     loadInteractions();
@@ -89,48 +151,41 @@ export default function HorizontalProjectCard({
     return () => window.removeEventListener("refresh_projects", handleRefresh);
   }, [loadInteractions]);
 
-
-  const handleLike = async (reactionType: ReactionType = "LIKE") => {
-    if (!currentUser || isLikeLoading) return;
-    setIsLikeLoading(true);
-    
-    const prevReaction = myReaction;
-    const isSameReaction = prevReaction === reactionType;
-    const isRemovingLike = prevReaction && isSameReaction;
-    const isAddingLike = !prevReaction;
-
-    const cacheKey = `interaction_project_${p.id}_${currentUser.id}`;
-    let newLikeCount = likeCount;
-    let newReaction = isRemovingLike ? null : reactionType;
-    let newTopReactions = topReactions;
-
-    if (isRemovingLike) {
-      newLikeCount = Math.max(0, likeCount - 1);
-    } else {
-      if (isAddingLike) newLikeCount = likeCount + 1;
-      if (isAddingLike || reactionType !== prevReaction) {
-        newTopReactions = [reactionType, ...topReactions.filter((r: any) => r !== reactionType)];
-      }
+  const handleToggleStar = async () => {
+    if (!activeUserId) {
+      toast.error(tProject("mustLoginToInteract") || "Silakan login terlebih dahulu");
+      return;
     }
-    
-    setMyReaction(newReaction);
-    setLikeCount(newLikeCount);
-    setTopReactions(newTopReactions);
-    
-    const cached = interactionsCache.get(cacheKey) || {};
+    if (isLikeLoading) return;
+    setIsLikeLoading(true);
+
+    const prevStarred = isProjectStarredByUser(myReaction);
+    const next = calculateOptimisticStar({ isStarred: prevStarred, starCount: likeCount });
+
+    const cacheKey = `interaction_project_${p.id}_${activeUserId}`;
+    setMyReaction(next.isStarred ? "STAR" : null);
+    setLikeCount(next.starCount);
+
     interactionsCache.set(cacheKey, {
-      ...cached,
-      myReaction: newReaction,
-      likeCount: newLikeCount,
-      topReactions: newTopReactions
+      ...interactionsCache.get(cacheKey),
+      myReaction: next.isStarred ? "STAR" : null,
+      likeCount: next.starCount,
+      commentCount,
+      topReactions: [],
     });
+    invalidateStargazersCache(p.id);
 
     try {
-      await toggleLike(currentUser.id, "project", p.id, reactionType);
+      await toggleLike(activeUserId, "project", p.id, "STAR");
       window.dispatchEvent(new Event("refresh_projects"));
     } catch (e) {
-      setMyReaction(prevReaction);
-      setLikeCount(isRemovingLike ? newLikeCount + 1 : isAddingLike ? Math.max(0, newLikeCount - 1) : newLikeCount);
+      setMyReaction(prevStarred ? "STAR" : null);
+      setLikeCount(likeCount);
+      interactionsCache.set(cacheKey, {
+        ...interactionsCache.get(cacheKey),
+        myReaction: prevStarred ? "STAR" : null,
+        likeCount,
+      });
     } finally {
       setIsLikeLoading(false);
     }
@@ -139,14 +194,12 @@ export default function HorizontalProjectCard({
   const handleSave = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!currentUser || isSaveLoading) return;
+    if (!activeUserId || isSaveLoading) return;
     const newIsSaved = !isSaved;
     setIsSaved(newIsSaved);
     setIsSaveLoading(true);
 
-    const res = await toggleSave(currentUser.id, "project", p.id);
-    
-    const cacheKey = `interaction_project_${p.id}_${currentUser.id}`;
+    const cacheKey = `interaction_project_${p.id}_${activeUserId}`;
     if (interactionsCache.has(cacheKey)) {
       interactionsCache.set(cacheKey, {
         ...interactionsCache.get(cacheKey),
@@ -156,6 +209,8 @@ export default function HorizontalProjectCard({
       interactionsCache.set(cacheKey, { hasSaved: newIsSaved });
     }
 
+    const res = await toggleSave(activeUserId, "project", p.id);
+    
     if (!res.success) {
       setIsSaved(!newIsSaved);
       if (interactionsCache.has(cacheKey)) {
@@ -213,21 +268,6 @@ export default function HorizontalProjectCard({
   const projectOwner = p.user?.username || username;
   const displayName = p.user?.profile?.displayName || projectOwner;
   const avatarUrl = p.user?.profile?.avatarUrl;
-  const parentCommentsCount = p.comments ? p.comments.filter((c: any) => !c.parentId).length : (p._count?.comments || 0);
-
-  const statusBadgeClass = (status: string) =>
-    "shrink-0 px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider " +
-    (status === "RELEASED"
-      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-      : status === "IN_PROGRESS"
-        ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-        : status === "OPEN_SOURCE"
-          ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-          : status === "SEARCHING_TEAM"
-            ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
-            : status === "HIATUS"
-              ? "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400"
-              : "bg-gray-100 text-gray-700");
 
   const statusKey = ({ RELEASED: "statusReleased", IN_PROGRESS: "statusInProgress", OPEN_SOURCE: "statusOpenSource", SEARCHING_TEAM: "statusSearchingTeam", HIATUS: "statusHiatus" } as Record<string, string>)[p.status] || "statusReleased";
 
@@ -304,8 +344,8 @@ export default function HorizontalProjectCard({
                 </span>
               )}
               {p.isForSale && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[11px] font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   FOR SALE
                 </span>
               )}
@@ -313,7 +353,7 @@ export default function HorizontalProjectCard({
           </div>
           
           <div className="flex flex-col items-end gap-2 relative z-10 shrink-0 mt-0.5">
-            <span className={statusBadgeClass(p.status)}>
+            <span className={getStatusBadgeClasses(p.status)}>
               {tProject(statusKey)}
             </span>
             {isOwnProfile && (
@@ -396,83 +436,92 @@ export default function HorizontalProjectCard({
                 </span>
               )}
             </div>
-            
-            <div className="flex items-center gap-1.5 cursor-pointer hover:underline text-[#65676B] dark:text-[#B0B3B8] text-[15px] relative z-10">
-              {isInteractionLoading ? (
-                <div className="flex items-center gap-1.5">
-                  <div className="flex -space-x-1">
-                    <div className="w-[18px] h-[18px] rounded-full bg-gray-200 dark:bg-[#3A3B3C] animate-pulse relative z-10 border-2 border-white dark:border-[#242526]"></div>
-                    <div className="w-[18px] h-[18px] rounded-full bg-gray-200 dark:bg-[#3A3B3C] animate-pulse relative z-0 border-2 border-white dark:border-[#242526]"></div>
-                  </div>
-                  <div className="w-4 h-4 bg-gray-200 dark:bg-[#3A3B3C] animate-pulse rounded"></div>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center -space-x-1 z-0">
-                    {topReactions.length > 0 ? (
-                      topReactions.slice(0, 3).map((r) => (
-                        <ReactionSummaryPopup key={r} targetId={p.id} targetType="PROJECT" likeCount={likeCount} topReactions={topReactions} filterReactionType={r}>
-                          <div className="w-[18px] h-[18px] rounded-full bg-white dark:bg-[#242526] relative z-10 flex items-center justify-center shadow-sm hover:z-20 hover:opacity-80 transition-opacity">
-                             <Image src={REACTION_CONFIG[r].src} alt={r} fill className="object-contain" />
-                          </div>
-                        </ReactionSummaryPopup>
-                      ))
-                    ) : likeCount > 0 ? (
-                      <ReactionSummaryPopup targetId={p.id} targetType="PROJECT" likeCount={likeCount} topReactions={topReactions}>
-                        <div className="w-[18px] h-[18px] rounded-full bg-blue-500 flex items-center justify-center shadow-sm hover:z-20 hover:opacity-80 transition-opacity">
-                          <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.8 2.4z" />
-                          </svg>
-                        </div>
-                      </ReactionSummaryPopup>
-                    ) : null}
-                  </div>
-                  {likeCount > 0 && <span onClick={(e) => { e.stopPropagation(); if (typeof window !== 'undefined' && (window as any).NProgress) (window as any).NProgress.start(); router.push(`/${locale}/project/${projectOwner}/${p.id}`); }}>{likeCount}</span>}
-                </>
-              )}
-            </div>
           </div>
 
           <div className="flex items-center justify-end pt-3 border-t border-gray-100 dark:border-[#3A3B3C]">
-            <div className="flex items-center gap-3 relative z-10" onClick={(e) => e.stopPropagation()}>
-              {isInteractionLoading ? (
-                <div className="w-[84px] h-[18px] bg-gray-200 dark:bg-[#3A3B3C] animate-pulse rounded"></div>
-              ) : (
-                <ReactionButton myReaction={myReaction} onReact={handleLike} count={0} containerClassName="!flex-none" className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-purple-600 dark:text-gray-400 dark:hover:bg-[#3A3B3C] dark:hover:text-purple-400 transition-colors font-medium text-[13px] bg-transparent" />
-              )}
+            <div className="flex items-center gap-1.5 sm:gap-2 relative z-10" onClick={(e) => e.stopPropagation()}>
+              {/* Star Buttons (Desktop & Mobile) */}
+              <ProjectStarButtonDesktop
+                isStarred={isProjectStarredByUser(myReaction)}
+                starCount={likeCount}
+                isLoading={isLikeLoading}
+                isInteractionLoading={isInteractionLoading}
+                onToggleStar={handleToggleStar}
+                onOpenStargazers={(rect) => setStargazersAnchor(rect)}
+              />
+              <ProjectStarButtonMobile
+                isStarred={isProjectStarredByUser(myReaction)}
+                starCount={likeCount}
+                isLoading={isLikeLoading}
+                isInteractionLoading={isInteractionLoading}
+                onToggleStar={handleToggleStar}
+                onOpenStargazers={(rect) => setStargazersAnchor(rect)}
+              />
               
-              <Link 
-                href={`/${locale}/project/${projectOwner}/${p.id}#comments`} 
-                className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-gray-500 hover:text-purple-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-purple-400 dark:hover:bg-[#3A3B3C] transition-colors font-medium text-[13px]"
+              {/* Comment Button */}
+              <button 
+                onClick={() => {
+                  if (typeof window !== 'undefined' && (window as any).NProgress) (window as any).NProgress.start();
+                  const isMobile = typeof window !== "undefined" && window.innerWidth < 1024;
+                  const targetUrl = isMobile 
+                    ? `/${locale}/project/${projectOwner}/${p.id}?openComments=true` 
+                    : `/${locale}/project/${projectOwner}/${p.id}#comments`;
+                  router.push(targetUrl);
+                }}
+                className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-gray-500 hover:text-purple-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-purple-400 dark:hover:bg-[#3A3B3C] transition-colors font-medium text-[13px] bg-transparent"
                 title={tProject("comment") || "Komentar"}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                 {isInteractionLoading ? (
                   <div className="w-3 h-4 bg-gray-200 dark:bg-[#3A3B3C] animate-pulse rounded ml-0.5"></div>
-                ) : parentCommentsCount > 0 ? (
-                  <span className="ml-0.5 text-gray-500 dark:text-gray-400">{parentCommentsCount}</span>
+                ) : commentCount > 0 ? (
+                  <span className="ml-0.5 text-gray-500 dark:text-gray-400">{commentCount}</span>
                 ) : null}
-              </Link>
+              </button>
               
+              <div className="w-px h-4 bg-gray-300 dark:bg-[#4E4F50]"></div>
+
+              {/* Share Button */}
               <button 
                 onClick={handleShare}
-                className="flex items-center justify-center w-8 h-8 rounded-full text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 transition-colors hover:bg-gray-100 dark:hover:bg-[#3A3B3C]"
+                className="flex items-center justify-center px-2 py-1.5 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-purple-600 dark:text-gray-400 dark:hover:bg-[#3A3B3C] dark:hover:text-purple-400 transition-colors bg-transparent"
                 title={tProject("share") || "Bagikan"}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
               </button>
             </div>
           </div>
         </div>
       </div>
-      {currentUser && (
+
+      {activeUserId && (
         <SaveToFolderModal
           isOpen={isSaveModalOpen}
           onClose={() => setIsSaveModalOpen(false)}
-          userId={currentUser.id}
+          userId={activeUserId}
           targetType="project"
           targetId={p.id}
         />
+      )}
+
+      {/* Floating Stargazers Mini Popups (Desktop & Mobile) */}
+      {stargazersAnchor && (
+        <>
+          <ProjectStargazersPopupDesktop
+            isOpen={!!stargazersAnchor}
+            onClose={() => setStargazersAnchor(null)}
+            projectId={p.id}
+            projectTitle={p.title}
+            anchorRect={stargazersAnchor}
+          />
+          <ProjectStargazersPopupMobile
+            isOpen={!!stargazersAnchor}
+            onClose={() => setStargazersAnchor(null)}
+            projectId={p.id}
+            projectTitle={p.title}
+            anchorRect={stargazersAnchor}
+          />
+        </>
       )}
     </div>
   );

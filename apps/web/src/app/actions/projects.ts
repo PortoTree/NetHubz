@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "@/utils/prisma";
-import { updateTag, unstable_cache } from "next/cache";
+import { updateTag, unstable_cache, revalidatePath } from "next/cache";
 import { ProjectCategory, CollabType } from "@prisma/client";
 
 function extractNethubzProductId(url: string | undefined): string | null {
@@ -41,13 +41,34 @@ export interface CreateProjectInput {
   isForSale?: boolean;
 }
 
-// Invalidate every cache that contains this user's projects (Kasta 1 aggressive invalidation).
+// Invalidate every cache that contains this user's projects (Kasta 1 aggressive invalidation per plan/Cache_system.md).
 // Looks the username up from the DB because the project row itself does not include the user.
 async function invalidateUserProjects(userId: string, projectId?: string) {
   const owner = await prisma.user.findUnique({ where: { id: userId }, select: { username: true } });
-  if (owner?.username) updateTag(`projects-${owner.username}`);
+  if (owner?.username) {
+    updateTag(`projects-${owner.username}`);
+    try {
+      revalidatePath(`/project/${owner.username}`);
+      revalidatePath(`/id/project/${owner.username}`);
+      revalidatePath(`/en/project/${owner.username}`);
+    } catch {}
+  }
   updateTag("global_projects");
-  if (projectId) updateTag(`project_${projectId}`);
+  try {
+    revalidatePath("/project");
+    revalidatePath("/id/project");
+    revalidatePath("/en/project");
+  } catch {}
+  if (projectId) {
+    updateTag(`project_${projectId}`);
+    if (owner?.username) {
+      try {
+        revalidatePath(`/project/${owner.username}/${projectId}`);
+        revalidatePath(`/id/project/${owner.username}/${projectId}`);
+        revalidatePath(`/en/project/${owner.username}/${projectId}`);
+      } catch {}
+    }
+  }
 }
 
 export async function createProject(data: CreateProjectInput) {
@@ -174,13 +195,19 @@ export const getProjectsByUsername = async (username: string) => {
           include: {
             user: {
               select: { id: true, username: true, profile: true }
+            },
+            _count: {
+              select: {
+                likes: true,
+                comments: true
+              }
             }
           }
         });
 
         return { success: true, projects, user };
       },
-      ['getProjectsByUsername_v3', String(username)],
+      ['getProjectsByUsername_v4', String(username)],
       { tags: [`projects-${username}`] }
     )();
   } catch (error: any) {

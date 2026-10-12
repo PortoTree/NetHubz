@@ -19,6 +19,11 @@ import { deleteProject, createProject, updateProject } from "@/app/actions/proje
 import { checkBatchProjectInteractionState } from "@/app/actions/interactions";
 import { projectsCache, interactionsCache } from "@/utils/cache";
 import ProjectFormModal from "@/components/ProjectFormModal";
+import {
+  calculateTotalProjectStats,
+  getClientTokenUser,
+  resolveInteractionUserKey,
+} from "@/utils/projectStar";
 
 
 
@@ -28,20 +33,21 @@ export default function ClientUserProjectPage({ username, initialProjects, initi
     const decodedUsername = username;
   const t = useTranslations("project");
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<any>(() => {
+    if (typeof window !== "undefined") {
+      return getClientTokenUser();
+    }
+    return null;
+  });
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      try {
-        const payload = JSON.parse(atob(token.split(".")[1]));
-        const userId = payload.sub || payload.id || payload._id || payload.userId || "1";
-        setUser({ id: userId, username: payload.username || "Guest" });
-      } catch (e) {
-        console.error("Invalid token");
+    if (typeof window !== "undefined") {
+      const cu = getClientTokenUser();
+      if (cu && (!user || user.id !== cu.id)) {
+        setUser(cu);
       }
     }
-  }, []);
+  }, [user]);
   
   const [profileUser, setProfileUser] = useState<any>(initialProfileUser);
   const [projects, setProjects] = useState<any[]>(initialProjects || []);
@@ -149,30 +155,66 @@ export default function ClientUserProjectPage({ username, initialProjects, initi
   }, [loadProjects]);
 
   // Batch-prefetch interaction state for all projects once user + projects are ready
+  const hasToken = typeof window !== "undefined" && !!localStorage.getItem("token");
+  const activeUser = user || (typeof window !== "undefined" ? getClientTokenUser() : null);
+  const activeUserId = activeUser?.id;
+  const userKey = resolveInteractionUserKey(activeUserId, hasToken);
+
+  const allCached = Boolean(userKey) && projects.length > 0 && projects.every((p: any) =>
+    interactionsCache.has(`interaction_project_${p.id}_${userKey}`)
+  );
+  const [isCountingLoading, setIsCountingLoading] = useState(!allCached && projects.length > 0);
+
   useEffect(() => {
-    if (!user || !projects.length) return;
+    if (!projects.length) {
+      setIsCountingLoading(false);
+      return;
+    }
+
+    const hasClientToken = typeof window !== "undefined" && !!localStorage.getItem("token");
+    const currentActiveUserId = user?.id || (typeof window !== "undefined" ? getClientTokenUser()?.id : undefined);
+    const currentUserKey = resolveInteractionUserKey(currentActiveUserId, hasClientToken);
+
+    // CRITICAL: If client has a token in localStorage, NEVER perform a guest query!
+    // Wait until user id is resolved from token.
+    if (!currentUserKey) {
+      return;
+    }
+
     const uncachedIds = projects
       .map((p: any) => p.id)
-      .filter((id: string) => !interactionsCache.has(`interaction_project_${id}_${user.id}`));
-    if (!uncachedIds.length) return;
+      .filter((id: string) => !interactionsCache.has(`interaction_project_${id}_${currentUserKey}`));
 
-    checkBatchProjectInteractionState(user.id, uncachedIds).then((batchResult: Record<string, any>) => {
-      for (const id of uncachedIds) {
-        const data = batchResult[id];
-        if (data) {
-          interactionsCache.set(`interaction_project_${id}_${user.id}`, {
-            myReaction: data.myReaction,
-            likeCount: data.likeCount,
-            commentCount: data.commentCount,
-            topReactions: data.topReactions,
-            hasSaved: data.hasSaved,
-          });
+    if (!uncachedIds.length) {
+      setIsCountingLoading(false);
+      return;
+    }
+
+    setIsCountingLoading(true);
+    checkBatchProjectInteractionState(currentActiveUserId, uncachedIds)
+      .then((batchResult: Record<string, any>) => {
+        for (const id of uncachedIds) {
+          const data = batchResult[id];
+          if (data) {
+            interactionsCache.set(`interaction_project_${id}_${currentUserKey}`, {
+              myReaction: data.myReaction,
+              likeCount: data.likeCount,
+              commentCount: data.commentCount,
+              topReactions: data.topReactions,
+              hasSaved: data.hasSaved,
+            });
+          }
         }
-      }
-      // Trigger cards to re-read cache
-      window.dispatchEvent(new Event("refresh_projects"));
-    });
-  }, [user, projects]);
+        // Trigger cards to re-read cache
+        window.dispatchEvent(new Event("refresh_projects"));
+      })
+      .catch((err) => {
+        console.error("Batch interaction error:", err);
+      })
+      .finally(() => {
+        setIsCountingLoading(false);
+      });
+  }, [user?.id, projects]);
 
 
   if (isLoading) {
@@ -211,19 +253,9 @@ export default function ClientUserProjectPage({ username, initialProjects, initi
 
   const displayName = profileUser.profile?.displayName || profileUser.username;
   const avatar = profileUser.profile?.avatarUrl ? getOptimizedUrl(profileUser.profile.avatarUrl, 'thumb') : null;
-  const isOwnProfile = user?.id === profileUser.id;
+  const isOwnProfile = activeUserId === profileUser.id;
 
-  const totalReactions = projects.reduce((acc, p) => {
-    const cacheKey = `interaction_project_${p.id}_${user?.id || 'guest'}`;
-    const cached = interactionsCache.get(cacheKey);
-    return acc + (cached?.likeCount ?? p._count?.likes ?? p.likeCount ?? 0);
-  }, 0);
-
-  const totalComments = projects.reduce((acc, p) => {
-    const cacheKey = `interaction_project_${p.id}_${user?.id || 'guest'}`;
-    const cached = interactionsCache.get(cacheKey);
-    return acc + (cached?.commentCount ?? p._count?.comments ?? p.commentCount ?? 0);
-  }, 0);
+  const { totalStars, totalComments } = calculateTotalProjectStats(projects, interactionsCache, activeUserId);
 
   return (
     <div className="relative flex flex-col min-h-screen bg-[#F0F2F5] dark:bg-[#18191A] pt-16 sm:pt-20 pb-6 sm:pb-10 overflow-hidden">
@@ -249,13 +281,15 @@ export default function ClientUserProjectPage({ username, initialProjects, initi
           </h1>
           <ProjectStatsSummaryDesktop
             projectCount={projects.length}
-            reactionCount={totalReactions}
+            starCount={totalStars}
             commentCount={totalComments}
+            isLoading={isCountingLoading}
           />
           <ProjectStatsSummaryMobile
             projectCount={projects.length}
-            reactionCount={totalReactions}
+            starCount={totalStars}
             commentCount={totalComments}
+            isLoading={isCountingLoading}
           />
         </div>
 
@@ -274,6 +308,8 @@ export default function ClientUserProjectPage({ username, initialProjects, initi
                   locale={locale}
                   username={profileUser.username}
                   isOwnProfile={isOwnProfile}
+                  currentUser={activeUser}
+                  currentUserId={activeUserId}
                   onEdit={(project) => {
                     setProjectToEdit(project);
                     setIsCreateProjectModalOpen(true);
