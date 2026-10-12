@@ -275,7 +275,9 @@
         "report": "Report a problem",
         "lightMode": "Light mode",
         "darkMode": "Dark mode",
-        "logout": "Log out"
+        "logout": "Log out",
+        "addAccount": "Add account",
+        "switchAccount": "Switch account"
     },
     "feed": {
         "createPost": "Post something",

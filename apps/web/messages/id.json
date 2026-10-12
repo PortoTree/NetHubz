@@ -275,7 +275,9 @@
         "report": "Laporkan masalah",
         "lightMode": "Tema terang",
         "darkMode": "Tema gelap",
-        "logout": "Keluar"
+        "logout": "Keluar",
+        "addAccount": "Tambah akun",
+        "switchAccount": "Ganti akun"
     },
     "feed": {
         "createPost": "Posting sesuatu",

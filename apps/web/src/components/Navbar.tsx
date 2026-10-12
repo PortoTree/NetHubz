@@ -15,6 +15,7 @@ import { handlePrimaryConnectionAction } from "@/app/actions/connections";
 import { notifyConnectionChanged, profileCache } from "@/utils/cache";
 import { getProfile } from "@/app/actions/profile";
 import { getOptimizedUrl } from "@/utils/cloudinary";
+import NavProfileDropdownDesktop from "@/components/NavProfileDropdownDesktop";
 
 
 let globalNotifsCache: { list: any[], unread: number, userId: string } | null = null;
@@ -724,9 +725,22 @@ export default function Navbar({
               </button>
             </div>
 
-            {/* Dropdown Profile Panel */}
+            {/* Desktop Profile Dropdown Panel */}
+            <div className="hidden sm:block">
+              <NavProfileDropdownDesktop
+                isOpen={isDropdownOpen}
+                onClose={() => setIsDropdownOpen(false)}
+                currentUser={currentUser}
+                navAvatar={navAvatar}
+                navDisplayName={navDisplayName}
+                isDarkMode={isDarkMode}
+                setIsDarkMode={setIsDarkMode}
+              />
+            </div>
+
+            {/* Mobile Dropdown Profile Panel (Unchanged) */}
             {isDropdownOpen && (
-              <div className="absolute right-0 mt-3 w-[260px] sm:w-[340px] bg-white dark:bg-[#242526] rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.15)] border border-gray-200 dark:border-[#3E4042] p-3 sm:p-4 z-[10200]">
+              <div className="sm:hidden absolute right-0 mt-3 w-[260px] bg-white dark:bg-[#242526] rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.15)] border border-gray-200 dark:border-[#3E4042] p-3 z-[10200]">
                 <div className="space-y-1 sm:space-y-2">
                   <button className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] transition-colors group/item">
                     <div className="flex items-center gap-2 sm:gap-3">
