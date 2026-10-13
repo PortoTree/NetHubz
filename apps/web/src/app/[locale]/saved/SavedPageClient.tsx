@@ -619,6 +619,7 @@ export default function SavedPageClient() {
                         project={item.project}
                         locale={locale as string}
                         username={item.project.user?.username || 'user'}
+                        isOwnProfile={Boolean(user?.id && (user.id === item.project.userId || user.id === item.project.user?.id))}
                         currentUser={user}
                         currentUserId={user?.id}
                       />
