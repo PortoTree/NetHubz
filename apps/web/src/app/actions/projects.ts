@@ -424,7 +424,7 @@ export async function updateProject(id: string, userId: string, data: {
           for (const item of newCreates) {
             await prisma.projectMedia.create({
               data: {
-                projectId: id,
+                project: { connect: { id } },
                 order: item.order,
                 isCover: item.isCover,
                 media: item.media,
