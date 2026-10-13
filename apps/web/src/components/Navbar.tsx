@@ -73,6 +73,22 @@ export default function Navbar({
   const [navAvatar, setNavAvatar] = useState<string | null>(currentUser?.profile?.avatarUrl || profileCache.get(currentUser?.id)?.avatarUrl || null);
   const [navDisplayName, setNavDisplayName] = useState<string | null>(currentUser?.profile?.displayName || profileCache.get(currentUser?.id)?.displayName || null);
   const [isLoadingNotifs, setIsLoadingNotifs] = useState(!globalNotifsCache || globalNotifsCache.userId !== currentUser?.id);
+  const [isProfileFloatingTabActive, setIsProfileFloatingTabActive] = useState(false);
+
+  useEffect(() => {
+    const handleFloatingTabToggle = (e: Event) => {
+      const event = e as CustomEvent<{ active: boolean }>;
+      setIsProfileFloatingTabActive(!!event.detail?.active);
+    };
+    window.addEventListener("profile_floating_tab_toggle", handleFloatingTabToggle);
+    return () => {
+      window.removeEventListener("profile_floating_tab_toggle", handleFloatingTabToggle);
+    };
+  }, []);
+
+  useEffect(() => {
+    setIsProfileFloatingTabActive(false);
+  }, [pathname]);
 
   useEffect(() => { setIsMounted(true); }, []);
 
@@ -403,7 +419,11 @@ export default function Navbar({
 
   return (
     <>
-      <nav className="bg-white/30 dark:bg-[#242526]/30 backdrop-blur-md sm:bg-white sm:dark:bg-[#242526] sm:backdrop-blur-none shadow-sm fixed top-0 w-full z-[10100] h-[56px] px-4 flex items-center justify-between border-b border-gray-200 dark:border-[#3E4042]">
+      <nav className={`fixed top-0 w-full z-[10100] h-[56px] px-4 flex items-center justify-between border-b border-gray-200 dark:border-[#3E4042] shadow-sm transition-colors duration-200 sm:bg-white sm:dark:bg-[#242526] sm:backdrop-blur-none ${
+        isProfileFloatingTabActive
+          ? "bg-white dark:bg-[#242526] backdrop-blur-none"
+          : "bg-white/30 dark:bg-[#242526]/30 backdrop-blur-md"
+      }`}>
         {/* Left: Logo & Search */}
         <div className="flex items-center gap-2">
           {/* Mobile Logo (semua tema) */}

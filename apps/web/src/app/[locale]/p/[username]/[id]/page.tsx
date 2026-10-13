@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 import PostFeed from "@/components/PostFeed";
-import HorizontalProjectCard from "@/components/HorizontalProjectCard";
+import ProjectCard from "@/components/ProjectCard";
 import EditProfileModal from "@/components/EditProfileModal";
 import CropModal from "@/components/CropModal";
 import ProfileMediaSelectionModal from "@/components/ProfileMediaSelectionModal";
@@ -396,9 +396,25 @@ function ProfilePageContent({
         setShowScrollToTabs(rect.top < -100);
       }
     };
+    handleScroll();
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("profile_floating_tab_toggle", {
+        detail: { active: showScrollToTabs }
+      })
+    );
+    return () => {
+      window.dispatchEvent(
+        new CustomEvent("profile_floating_tab_toggle", {
+          detail: { active: false }
+        })
+      );
+    };
+  }, [showScrollToTabs]);
 
   const carouselRef = React.useRef<HTMLDivElement>(null);
   const albumCarouselRef = React.useRef<HTMLDivElement>(null);
@@ -960,8 +976,8 @@ function ProfilePageContent({
 
       {/* Cloned Sticky Navigation Bar */}
       <div 
-        className={`fixed top-[56px] left-0 right-0 z-[45] w-full bg-white dark:bg-[#18191A] border-b border-gray-200 dark:border-white/10 shadow-sm py-2 transition-transform duration-300 ${
-          showScrollToTabs ? "translate-y-0 opacity-100 pointer-events-auto" : "-translate-y-full opacity-0 pointer-events-none"
+        className={`fixed top-[56px] left-0 right-0 z-[45] w-full transition-transform duration-300 pointer-events-none ${
+          showScrollToTabs ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
         }`}
       >
         <div className="max-w-[1100px] mx-auto px-0 md:px-8">
@@ -971,53 +987,55 @@ function ProfilePageContent({
             
             {/* Cloned Nav Container inside Right Column */}
             <div className="flex-1 min-w-0 flex justify-center">
-              <ul className="flex gap-3 px-2">
-                {[
-                  {
-                    id: 'posts', label: 'Post', gradientFrom: '#10B981', gradientTo: '#34D399',
-                    icon: <div className="w-6 h-6 bg-current" style={{ WebkitMask: "url(/navigasi/posting.svg) center/contain no-repeat", mask: "url(/navigasi/posting.svg) center/contain no-repeat" }} />
-                  },
-                  {
-                    id: 'gallery', label: 'Gallery', gradientFrom: '#56CCF2', gradientTo: '#2F80ED',
-                    icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 11V9a2 2 0 00-2-2H9a2 2 0 00-2 2v9a2 2 0 002 2h8a2 2 0 002-2v-2M15 4H5a2 2 0 00-2 2v10m12 0l-3-3m0 0l-3 3m3-3v6" /></svg>
-                  },
-                  {
-                    id: 'project', label: 'Project', gradientFrom: '#a955ff', gradientTo: '#ea51ff',
-                    icon: <div className="w-6 h-6 bg-current" style={{ WebkitMask: "url(/navigasi/project.svg) center/contain no-repeat", mask: "url(/navigasi/project-outline.svg) center/contain no-repeat" }} />
-                  }
-                ].map(({ id, label, icon, gradientFrom, gradientTo }) => (
-                  <li
-                    key={id}
-                    onClick={() => {
-                      // Ganti tab dulu → tunggu DOM render ulang (2 frame) → 
-                      // baru hitung posisi anchor yang sudah final dan scroll kesana.
-                      // Ini menghilangkan "dua fase scroll" karena posisi target
-                      // sudah tidak akan berubah lagi setelah kita scroll.
-                      setActiveTab(id);
-                      requestAnimationFrame(() => {
+              <div className="w-full max-w-[590px] mx-auto flex justify-center py-2 bg-[#F3F2EF] dark:bg-[#18191A] md:dark:bg-[#242526] border-none shadow-none md:shadow-sm md:rounded-b-2xl pointer-events-auto">
+                <ul className="flex gap-3 px-2">
+                  {[
+                    {
+                      id: 'posts', label: 'Post', gradientFrom: '#10B981', gradientTo: '#34D399',
+                      icon: <div className="w-6 h-6 bg-current" style={{ WebkitMask: "url(/navigasi/posting.svg) center/contain no-repeat", mask: "url(/navigasi/posting.svg) center/contain no-repeat" }} />
+                    },
+                    {
+                      id: 'gallery', label: 'Gallery', gradientFrom: '#56CCF2', gradientTo: '#2F80ED',
+                      icon: <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M19 11V9a2 2 0 00-2-2H9a2 2 0 00-2 2v9a2 2 0 002 2h8a2 2 0 002-2v-2M15 4H5a2 2 0 00-2 2v10m12 0l-3-3m0 0l-3 3m3-3v6" /></svg>
+                    },
+                    {
+                      id: 'project', label: 'Project', gradientFrom: '#a955ff', gradientTo: '#ea51ff',
+                      icon: <div className="w-6 h-6 bg-current" style={{ WebkitMask: "url(/navigasi/project.svg) center/contain no-repeat", mask: "url(/navigasi/project-outline.svg) center/contain no-repeat" }} />
+                    }
+                  ].map(({ id, label, icon, gradientFrom, gradientTo }) => (
+                    <li
+                      key={id}
+                      onClick={() => {
+                        // Ganti tab dulu → tunggu DOM render ulang (2 frame) → 
+                        // baru hitung posisi anchor yang sudah final dan scroll kesana.
+                        // Ini menghilangkan "dua fase scroll" karena posisi target
+                        // sudah tidak akan berubah lagi setelah kita scroll.
+                        setActiveTab(id);
                         requestAnimationFrame(() => {
-                          const anchorEl = document.getElementById('profile-tabs-anchor');
-                          if (anchorEl) {
-                            const rect = anchorEl.getBoundingClientRect();
-                            window.scrollTo({ top: window.scrollY + rect.top - 56, behavior: 'smooth' });
-                          }
+                          requestAnimationFrame(() => {
+                            const anchorEl = document.getElementById('profile-tabs-anchor');
+                            if (anchorEl) {
+                              const rect = anchorEl.getBoundingClientRect();
+                              window.scrollTo({ top: window.scrollY + rect.top - 56, behavior: 'smooth' });
+                            }
+                          });
                         });
-                      });
-                    }}
-                    style={{ '--gradient-from': gradientFrom, '--gradient-to': gradientTo } as React.CSSProperties}
-                    className={`relative h-[52px] bg-white dark:bg-[#3A3B3C] shadow-lg dark:shadow-black/40 rounded-full flex items-center justify-center transition-all duration-500 cursor-pointer overflow-hidden ${activeTab === id ? 'w-[140px] shadow-none' : 'w-[52px] group hover:w-[140px]'}`}
-                  >
-                    <span className={`absolute inset-0 rounded-full bg-[linear-gradient(45deg,var(--gradient-from),var(--gradient-to))] transition-opacity duration-500 ${activeTab === id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}></span>
-                    <span className={`absolute top-[10px] inset-x-0 h-full rounded-full bg-[linear-gradient(45deg,var(--gradient-from),var(--gradient-to))] blur-[15px] -z-10 transition-opacity duration-500 ${activeTab === id ? 'opacity-50' : 'opacity-0 group-hover:opacity-50'}`}></span>
-                    <span className={`relative z-10 text-gray-500 dark:text-gray-300 transition-all duration-300 ${activeTab === id ? 'scale-0 w-0 overflow-hidden' : 'scale-100 group-hover:scale-0 group-hover:w-0 group-hover:overflow-hidden'}`}>
-                      {icon}
-                    </span>
-                    <span className={`absolute text-white uppercase tracking-wide text-sm font-bold transition-all duration-300 ${activeTab === id ? 'scale-100 opacity-100' : 'scale-0 opacity-0 group-hover:scale-100 group-hover:opacity-100'}`} style={{ transitionDelay: activeTab === id ? '0ms' : '100ms' }}>
-                      {label}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+                      }}
+                      style={{ '--gradient-from': gradientFrom, '--gradient-to': gradientTo } as React.CSSProperties}
+                      className={`relative h-[52px] bg-white dark:bg-[#3A3B3C] shadow-lg dark:shadow-black/40 rounded-full flex items-center justify-center transition-all duration-500 cursor-pointer overflow-hidden active:scale-95 select-none ${activeTab === id ? 'w-[140px] shadow-none' : 'w-[52px] group hover:w-[140px]'}`}
+                    >
+                      <span className={`absolute inset-0 rounded-full bg-[linear-gradient(45deg,var(--gradient-from),var(--gradient-to))] transition-opacity duration-500 ${activeTab === id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}></span>
+                      <span className={`absolute top-[10px] inset-x-0 h-full rounded-full bg-[linear-gradient(45deg,var(--gradient-from),var(--gradient-to))] blur-[15px] -z-10 transition-opacity duration-500 ${activeTab === id ? 'opacity-50' : 'opacity-0 group-hover:opacity-50'}`}></span>
+                      <span className={`relative z-10 text-gray-500 dark:text-gray-300 transition-all duration-300 ${activeTab === id ? 'scale-0 w-0 overflow-hidden' : 'scale-100 group-hover:scale-0 group-hover:w-0 group-hover:overflow-hidden'}`}>
+                        {icon}
+                      </span>
+                      <span className={`absolute text-white uppercase tracking-wide text-sm font-bold transition-all duration-300 ${activeTab === id ? 'scale-100 opacity-100' : 'scale-0 opacity-0 group-hover:scale-100 group-hover:opacity-100'}`} style={{ transitionDelay: activeTab === id ? '0ms' : '100ms' }}>
+                        {label}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
         </div>
@@ -2310,7 +2328,7 @@ function ProfilePageContent({
                       <div className="flex justify-center mb-6 mt-4">
                         <button
                           onClick={() => setIsCreateProjectModalOpen(true)}
-                          className="px-6 py-2.5 bg-transparent border-2 border-purple-500 text-purple-500 dark:border-purple-400 dark:text-purple-400 font-bold rounded-full hover:bg-purple-50 dark:hover:bg-purple-400/10 transition-all flex items-center gap-2"
+                          className="px-6 py-2.5 bg-transparent border-2 border-purple-500 text-purple-500 dark:border-purple-400 dark:text-purple-400 font-bold rounded-full hover:bg-purple-50 dark:hover:bg-purple-400/10 active:scale-95 transition-all flex items-center gap-2 select-none"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
                           {tProject("addProject")}
@@ -2320,24 +2338,18 @@ function ProfilePageContent({
                     {isLoadingProjects ? (
                       <div className="flex flex-col gap-4">
                         {[1, 2].map((i) => (
-                          <div key={i} className="bg-white dark:bg-[#242526] rounded-[20px] shadow-sm border border-gray-100 dark:border-[#3A3B3C] overflow-hidden animate-pulse flex flex-col md:flex-row min-h-[180px]">
-                            <div className="w-full md:w-[200px] md:shrink-0 aspect-video md:aspect-auto bg-gray-200 dark:bg-[#3A3B3C]" />
-                            <div className="p-5 flex flex-col flex-grow w-full min-w-0">
-                              <div className="flex items-start justify-between gap-3 mb-4">
-                                <div className="flex-1 space-y-2">
-                                  <div className="h-6 bg-gray-200 dark:bg-[#3A3B3C] rounded w-3/4" />
-                                  <div className="h-4 bg-gray-200 dark:bg-[#3A3B3C] rounded w-1/4" />
+                          <div key={i} className="bg-white dark:bg-[#242526] rounded-[20px] overflow-hidden shadow-sm animate-pulse border border-gray-100 dark:border-[#3A3B3C]">
+                            <div className="w-full aspect-video bg-gray-200 dark:bg-[#3A3B3C]" />
+                            <div className="p-5 flex flex-col gap-3">
+                              <div className="w-3/4 h-6 rounded-lg bg-gray-200 dark:bg-[#4E4F50]" />
+                              <div className="w-full h-4 rounded-lg bg-gray-200 dark:bg-[#4E4F50]" />
+                              <div className="w-5/6 h-4 rounded-lg bg-gray-200 dark:bg-[#4E4F50]" />
+                              <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-[#3E4042]">
+                                <div className="w-16 h-6 rounded-full bg-gray-200 dark:bg-[#4E4F50]" />
+                                <div className="flex gap-2">
+                                  <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-[#4E4F50]" />
+                                  <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-[#4E4F50]" />
                                 </div>
-                                <div className="h-5 bg-gray-200 dark:bg-[#3A3B3C] rounded-full w-20 shrink-0 mt-0.5" />
-                              </div>
-                              <div className="space-y-2 mb-5">
-                                <div className="h-3 bg-gray-200 dark:bg-[#3A3B3C] rounded w-full" />
-                                <div className="h-3 bg-gray-200 dark:bg-[#3A3B3C] rounded w-5/6" />
-                              </div>
-                              <div className="flex items-center gap-3 mt-auto pt-4 border-t border-gray-100 dark:border-[#3A3B3C]">
-                                <div className="h-6 w-14 bg-gray-200 dark:bg-[#3A3B3C] rounded-full" />
-                                <div className="h-6 w-12 bg-gray-200 dark:bg-[#3A3B3C] rounded-full" />
-                                <div className="h-6 w-12 bg-gray-200 dark:bg-[#3A3B3C] rounded-full ml-auto" />
                               </div>
                             </div>
                           </div>
@@ -2348,11 +2360,13 @@ function ProfilePageContent({
                         {projects.slice(0, 3).map((p) => {
                           return (
                             <div key={p.id} className="block relative z-0">
-                              <HorizontalProjectCard
+                              <ProjectCard
                                 project={p}
                                 locale={locale}
                                 username={username}
                                 isOwnProfile={isOwnProfile}
+                                currentUser={currentUser}
+                                currentUserId={currentUser?.id}
                                 onEdit={(project) => {
                                   setProjectToEdit(project);
                                   setIsCreateProjectModalOpen(true);
@@ -2369,7 +2383,7 @@ function ProfilePageContent({
                           <div className="py-4 flex justify-center">
                             <button
                               onClick={() => router.push(`/${locale}/project/${username}`)}
-                              className="px-6 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-[#3A3B3C] dark:hover:bg-[#4E4F50] text-gray-800 dark:text-[#E4E6EB] rounded-full font-semibold transition-colors"
+                              className="px-6 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-[#3A3B3C] dark:hover:bg-[#4E4F50] text-gray-800 dark:text-[#E4E6EB] rounded-full font-semibold transition-all active:scale-95 duration-150 select-none"
                             >
                               {tProject("viewOtherProjects") || "Lihat Project lain"}
                             </button>
