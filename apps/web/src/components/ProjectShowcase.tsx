@@ -827,8 +827,8 @@ export default function ProjectShowcase({ projects, title, subtitle }: { project
           </div>
 
           {/* CLONED FLOATING HEADER (Appears on scroll, WITH EXPAND TRIGGER) */}
-          <div className={`fixed top-14 left-0 right-0 z-40 pointer-events-none flex justify-center ${isScrolledPastHero ? "transition-transform duration-300 translate-y-0" : "transition-none -translate-y-full"}`}>
-            <div className="max-w-[1200px] w-full px-3 sm:px-4 flex gap-6">
+          <div className={`fixed top-14 left-0 right-0 lg:pl-[72px] z-40 pointer-events-none flex justify-center ${isScrolledPastHero ? "transition-transform duration-300 translate-y-0" : "transition-none -translate-y-full"}`}>
+            <div className="max-w-[1200px] w-full px-3 lg:px-4 flex gap-6">
               {/* Left Column matching */}
               <div className="flex-1 min-w-0 pointer-events-auto">
                 <div className="bg-white/95 dark:bg-[#242526]/95 backdrop-blur-md px-3.5 sm:px-5 py-2.5 sm:py-3.5 border border-gray-200 dark:border-[#4E4F50] shadow-sm rounded-2xl sm:rounded-[28px] mt-2 sm:mt-4">

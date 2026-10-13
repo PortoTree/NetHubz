@@ -9,6 +9,7 @@ import Link from "next/link";
 
 import PostFeed from "@/components/PostFeed";
 import ProjectCard from "@/components/ProjectCard";
+import HomeNavSidebar from "@/components/HomeNavSidebar";
 import EditProfileModal from "@/components/EditProfileModal";
 import CropModal from "@/components/CropModal";
 import ProfileMediaSelectionModal from "@/components/ProfileMediaSelectionModal";
@@ -972,11 +973,14 @@ function ProfilePageContent({
 
 
   return (
-    <main className="min-h-screen bg-[#F3F2EF] dark:bg-[#18191A] text-black dark:text-[#E4E6EB] pb-20 pt-[56px] font-sans">
+    <main className="min-h-screen bg-[#F3F2EF] dark:bg-[#18191A] text-black dark:text-[#E4E6EB] pb-20 pt-[56px] font-sans lg:pl-[72px]">
+
+      {/* Global Desktop Navigation Sidebar */}
+      <HomeNavSidebar activeTab="profile" />
 
       {/* Cloned Sticky Navigation Bar */}
       <div 
-        className={`fixed top-[56px] left-0 right-0 z-[45] w-full transition-transform duration-300 pointer-events-none ${
+        className={`fixed top-[56px] left-0 right-0 z-[45] w-full transition-transform duration-300 pointer-events-none lg:pl-[72px] ${
           showScrollToTabs ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
         }`}
       >
@@ -1921,11 +1925,11 @@ function ProfilePageContent({
 
                 {/* Tab Content Area */}
                 <div className="mt-2 flex flex-col gap-4 max-w-[590px] w-full mx-auto min-h-[100vh] pb-8">
-                  <div className={activeTab === 'posts' ? 'block' : 'hidden'}>
+                  <div className={`${activeTab === 'posts' ? 'block' : 'hidden'} -mx-3 sm:mx-0`}>
                     {/* Create Post Input */}
                     {isOwnProfile && (
                       <div className="bg-transparent sm:bg-white sm:dark:bg-[#242526] rounded-none sm:rounded-xl shadow-none sm:shadow-sm border-0 sm:border border-b border-gray-200 dark:border-[#3E4042] sm:border-gray-100 sm:dark:border-[#3E4042] p-4 w-full mb-4">
-                        <div className="flex items-center gap-3 pb-4 border-b border-gray-200 dark:border-[#3E4042] sm:border-gray-100">
+                        <div className="flex items-center gap-3 pb-3 sm:pb-4">
                           <div className="w-[40px] h-[40px] rounded-full flex items-center justify-center shrink-0 overflow-hidden border border-emerald-600 dark:border-emerald-400">
                             <img
                               src={avatarPreview ? getOptimizedUrl(avatarPreview, "avatar") : "/default-avatar.svg"}

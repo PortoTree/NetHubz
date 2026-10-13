@@ -13,6 +13,7 @@ import { useUser } from "@/contexts/UserContext";
 import { foldersCache, rootItemsCache } from "@/utils/cache";
 import PostCard from "@/components/PostCard";
 import HorizontalProjectCard from "@/components/HorizontalProjectCard";
+import ProjectCard from "@/components/ProjectCard";
 import { toast } from "react-hot-toast";
 
 const activeFetches = new Map<string, Promise<any>>();
@@ -556,11 +557,28 @@ export default function SavedPageClient() {
         ) : (
           <div className="columns-1 md:columns-2 gap-4 mt-4 w-full">
             {rootItems.map((item, idx) => (
-              <div key={`${item.type}-${item.id}`} className="break-inside-avoid mb-4">
+              <div key={`${item.type}-${item.id}`} className={`break-inside-avoid ${item.type === 'post' ? 'mb-0 sm:mb-4' : 'mb-4'}`}>
                 {item.type === 'post' ? (
-                  <PostCard post={item.post} currentUser={user} />
+                  <div className="-mx-4 sm:mx-0">
+                    <PostCard post={item.post} currentUser={user} />
+                  </div>
                 ) : (
-                  <HorizontalProjectCard project={item.project} locale={locale as string} username={item.project.user?.username || 'user'} />
+                  <>
+                    {/* Versi Mobile: ProjectCard persis seperti di /project/[username] */}
+                    <div className="block md:hidden">
+                      <ProjectCard
+                        project={item.project}
+                        locale={locale as string}
+                        username={item.project.user?.username || 'user'}
+                        currentUser={user}
+                        currentUserId={user?.id}
+                      />
+                    </div>
+                    {/* Versi Desktop: Tetap HorizontalProjectCard */}
+                    <div className="hidden md:block">
+                      <HorizontalProjectCard project={item.project} locale={locale as string} username={item.project.user?.username || 'user'} />
+                    </div>
+                  </>
                 )}
               </div>
             ))}

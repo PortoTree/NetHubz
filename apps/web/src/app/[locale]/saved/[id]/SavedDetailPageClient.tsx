@@ -13,6 +13,7 @@ import { useUser } from "@/contexts/UserContext";
 import { folderDetailsCache } from "@/utils/cache";
 import PostCard from "@/components/PostCard";
 import HorizontalProjectCard from "@/components/HorizontalProjectCard";
+import ProjectCard from "@/components/ProjectCard";
 import { toast } from "react-hot-toast";
 
 const activeFetches = new Map<string, Promise<any>>();
@@ -345,9 +346,26 @@ export default function SavedDetailPageClient({ folderId }: { folderId: string }
             {items.map((item: any) => (
               <div key={item.id} className="w-full">
                 {item.type === 'project' ? (
-                  <HorizontalProjectCard project={item.project} locale={locale as string} username={item.project.user?.username || 'user'} />
+                  <>
+                    {/* Versi Mobile: ProjectCard persis seperti di /project/[username] */}
+                    <div className="block md:hidden">
+                      <ProjectCard
+                        project={item.project}
+                        locale={locale as string}
+                        username={item.project.user?.username || 'user'}
+                        currentUser={user}
+                        currentUserId={user?.id}
+                      />
+                    </div>
+                    {/* Versi Desktop: Tetap HorizontalProjectCard */}
+                    <div className="hidden md:block">
+                      <HorizontalProjectCard project={item.project} locale={locale as string} username={item.project.user?.username || 'user'} />
+                    </div>
+                  </>
                 ) : (
-                  <PostCard post={item.post} currentUser={user} />
+                  <div className="-mx-4 sm:mx-0">
+                    <PostCard post={item.post} currentUser={user} />
+                  </div>
                 )}
               </div>
             ))}
