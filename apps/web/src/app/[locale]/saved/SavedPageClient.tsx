@@ -3,7 +3,7 @@ import NProgress from "nprogress";
 
 
 import { useTranslations } from "next-intl";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
@@ -14,6 +14,8 @@ import { foldersCache, rootItemsCache } from "@/utils/cache";
 import PostCard from "@/components/PostCard";
 import HorizontalProjectCard from "@/components/HorizontalProjectCard";
 import ProjectCard from "@/components/ProjectCard";
+import SavedRootFilterDesktop, { SavedFilterType } from "@/components/SavedRootFilterDesktop";
+import SavedRootFilterMobile from "@/components/SavedRootFilterMobile";
 import { toast } from "react-hot-toast";
 
 const activeFetches = new Map<string, Promise<any>>();
@@ -29,9 +31,15 @@ export default function SavedPageClient() {
   
   const [collections, setCollections] = useState<any[]>([]);
   const [rootItems, setRootItems] = useState<any[]>([]);
+  const [rootFilter, setRootFilter] = useState<SavedFilterType>("all");
   const { currentUser: user } = useUser();
   const [isLoading, setIsLoading] = useState(true);
   const [isRootLoading, setIsRootLoading] = useState(true);
+
+  const filteredRootItems = useMemo(() => {
+    if (rootFilter === "all") return rootItems;
+    return rootItems.filter((item) => item.type === rootFilter);
+  }, [rootItems, rootFilter]);
 
   const [formName, setFormName] = useState("");
   const [formDesc, setFormDesc] = useState("");
@@ -543,20 +551,41 @@ export default function SavedPageClient() {
 
       {/* Root items */}
       <div className="mt-12">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-[#E4E6EB] mb-4 border-b border-gray-300 dark:border-[#3A3B3C] pb-2">
-          {t("rootItems") || "Root Items"}
-        </h2>
+        <div className="flex items-center justify-between mb-4 border-b border-gray-300 dark:border-[#3A3B3C] pb-2">
+          <h2 className="text-xl font-bold text-gray-900 dark:text-[#E4E6EB]">
+            {t("rootItems") || "Item di luar folder"}
+          </h2>
+          {/* Filter Dropdown Desktop */}
+          <div className="hidden md:block">
+            <SavedRootFilterDesktop
+              activeFilter={rootFilter}
+              onFilterChange={setRootFilter}
+            />
+          </div>
+          {/* Filter Dropdown Mobile */}
+          <div className="block md:hidden">
+            <SavedRootFilterMobile
+              activeFilter={rootFilter}
+              onFilterChange={setRootFilter}
+            />
+          </div>
+        </div>
+
         {isRootLoading ? (
           <div className="columns-1 md:columns-2 gap-4 mt-4 w-full">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="animate-pulse bg-gray-200 dark:bg-[#3A3B3C] rounded-xl h-64 w-full break-inside-avoid mb-4"></div>
             ))}
           </div>
-        ) : rootItems.length === 0 ? (
-          <p className="text-gray-500 text-sm">Belum ada item di luar folder.</p>
+        ) : filteredRootItems.length === 0 ? (
+          <p className="text-gray-500 text-sm">
+            {rootItems.length === 0
+              ? (locale === "id" ? "Belum ada item di luar folder." : "No items outside folders.")
+              : (t("noFilteredItems") || (locale === "id" ? "Belum ada item untuk filter ini." : "No items for this filter yet."))}
+          </p>
         ) : (
           <div className="columns-1 md:columns-2 gap-4 mt-4 w-full">
-            {rootItems.map((item, idx) => (
+            {filteredRootItems.map((item, idx) => (
               <div key={`${item.type}-${item.id}`} className={`break-inside-avoid ${item.type === 'post' ? 'mb-0 sm:mb-4' : 'mb-4'}`}>
                 {item.type === 'post' ? (
                   <div className="-mx-4 sm:mx-0">
