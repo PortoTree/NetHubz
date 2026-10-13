@@ -22,7 +22,7 @@ export default function FloatingProjectHubBtn({
     return (
       <Link 
         href={targetHref}
-        className="fixed top-4 left-4 sm:top-6 sm:left-6 z-[9999] flex items-center bg-white dark:bg-[#3A3B3C] text-black dark:text-[#E4E6EB] shadow-[0_2px_10px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_10px_rgba(0,0,0,0.5)] rounded-full h-9 sm:h-10 group overflow-hidden border border-gray-100 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-[#4E4F50] transition-colors"
+        className="fixed top-4 left-4 sm:top-6 sm:left-6 z-[9999] flex items-center bg-white dark:bg-[#3A3B3C] text-black dark:text-[#E4E6EB] shadow-[0_2px_10px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_10px_rgba(0,0,0,0.5)] rounded-full h-9 sm:h-10 group overflow-hidden border border-gray-100 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-[#4E4F50] transition-all duration-150 active:scale-90"
       >
         <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 flex items-center justify-center">
           <img src="/navigasi/project.svg" alt="Project Hub" className="w-4 h-4 sm:w-5 sm:h-5 object-contain dark:invert" />
@@ -41,7 +41,7 @@ export default function FloatingProjectHubBtn({
       {/* Top Button: Back / User Projects */}
       <Link 
         href={targetHref}
-        className="flex items-center bg-white dark:bg-[#3A3B3C] text-black dark:text-[#E4E6EB] shadow-[0_2px_10px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_10px_rgba(0,0,0,0.5)] rounded-full h-9 sm:h-10 group/back overflow-hidden border border-gray-100 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-[#4E4F50] transition-colors w-fit"
+        className="flex items-center bg-white dark:bg-[#3A3B3C] text-black dark:text-[#E4E6EB] shadow-[0_2px_10px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_10px_rgba(0,0,0,0.5)] rounded-full h-9 sm:h-10 group/back overflow-hidden border border-gray-100 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-[#4E4F50] transition-all duration-150 active:scale-90 w-fit"
       >
         <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 flex items-center justify-center">
           <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -59,7 +59,7 @@ export default function FloatingProjectHubBtn({
       <div className="overflow-hidden transition-all duration-300 max-h-0 opacity-0 group-hover/parent:max-h-[60px] group-hover/parent:opacity-100 group-hover/parent:mt-2 sm:group-hover/parent:mt-3">
         <Link 
           href={`/${locale}/project`}
-          className="flex items-center bg-white dark:bg-[#3A3B3C] text-black dark:text-[#E4E6EB] shadow-[0_2px_10px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_10px_rgba(0,0,0,0.5)] rounded-full h-9 sm:h-10 group/hub overflow-hidden border border-gray-100 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-[#4E4F50] transition-colors w-fit"
+          className="flex items-center bg-white dark:bg-[#3A3B3C] text-black dark:text-[#E4E6EB] shadow-[0_2px_10px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_10px_rgba(0,0,0,0.5)] rounded-full h-9 sm:h-10 group/hub overflow-hidden border border-gray-100 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-[#4E4F50] transition-all duration-150 active:scale-90 w-fit"
         >
           <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 flex items-center justify-center">
             <img src="/navigasi/project.svg" alt="Project Hub" className="w-4 h-4 sm:w-5 sm:h-5 object-contain dark:invert" />

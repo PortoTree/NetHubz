@@ -135,7 +135,7 @@ export function ReactionButton({ myReaction, onReact, count, className, containe
                   setIsOpen(false);
                 }}
                 onContextMenu={(e) => e.preventDefault()}
-                className="absolute w-[56px] h-[56px] -ml-[28px] -mt-[28px] rounded-full bg-white dark:bg-[#242526] shadow-[0_4px_12px_rgba(0,0,0,0.15)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.4)] border border-gray-100 dark:border-[#3E4042] hover:scale-125 hover:z-50 active:scale-125 active:z-50 transition-all duration-300 flex items-center justify-center group/emoji animate-in zoom-in duration-200 select-none"
+                className="absolute w-[56px] h-[56px] -ml-[28px] -mt-[28px] rounded-full bg-white dark:bg-[#242526] shadow-[0_4px_12px_rgba(0,0,0,0.15)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.4)] border border-gray-100 dark:border-[#3E4042] hover:scale-125 hover:z-50 active:scale-110 active:z-50 transition-all duration-150 flex items-center justify-center group/emoji animate-in zoom-in duration-200 select-none"
                 style={{ 
                   left: `${x}px`, 
                   top: `${y}px`,
@@ -144,7 +144,7 @@ export function ReactionButton({ myReaction, onReact, count, className, containe
                   WebkitTouchCallout: 'none'
                 }}
               >
-                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black/80 text-white text-[12px] font-bold px-2.5 py-1 rounded-full opacity-0 invisible group-hover/emoji:opacity-100 group-hover/emoji:visible group-active/emoji:opacity-100 group-active/emoji:visible transition-all duration-200 pointer-events-none whitespace-nowrap shadow-sm z-50">
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black/80 text-white text-[12px] font-bold px-2.5 py-1 rounded-full opacity-0 invisible group-hover/emoji:opacity-100 group-hover/emoji:visible group-active/emoji:opacity-100 group-active/emoji:visible transition-all duration-150 pointer-events-none whitespace-nowrap shadow-sm z-50">
                   {config.label}
                 </div>
                 <div className="relative w-10 h-10 pointer-events-none">
@@ -160,7 +160,7 @@ export function ReactionButton({ myReaction, onReact, count, className, containe
       <button 
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
-        className={className?.includes('group') ? className.replace(/\bgroup\b/, 'group/reactBtn') : (className || "flex-1 flex items-center justify-center py-1.5 rounded-lg text-[15px] transition-colors bg-transparent hover:bg-gray-200 dark:hover:bg-[#3A3B3C] relative group/reactBtn select-none")}
+        className={className?.includes('group') ? className.replace(/\bgroup\b/, 'group/reactBtn') : (className || "flex-1 flex items-center justify-center py-1.5 rounded-lg text-[15px] transition-all duration-150 active:scale-95 bg-transparent hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:bg-gray-200/60 dark:active:bg-[#3A3B3C] relative group/reactBtn select-none")}
       >
         {!hideTooltip && (
           <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black/80 text-white text-[11px] font-bold px-2 py-1 rounded-full opacity-0 invisible group-hover/reactBtn:opacity-100 group-hover/reactBtn:visible transition-all duration-200 pointer-events-none whitespace-nowrap shadow-sm z-50">

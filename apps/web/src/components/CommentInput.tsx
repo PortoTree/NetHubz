@@ -168,7 +168,7 @@ export default function CommentInput({
             <button 
               type="submit" 
               disabled={!commentText.trim() || isSubmitting}
-              className="shrink-0 p-2 text-blue-600 disabled:text-gray-400 dark:text-blue-400 dark:disabled:text-gray-500 transition-colors rounded-full mb-1 ml-1"
+              className="shrink-0 p-2 text-blue-600 disabled:text-gray-400 dark:text-blue-400 dark:disabled:text-gray-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 active:scale-90 active:bg-blue-100/50 dark:active:bg-blue-900/40 transition-all duration-150 rounded-full mb-1 ml-1 select-none"
             >
               <svg className="w-5 h-5 rotate-90" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
             </button>
@@ -181,7 +181,7 @@ export default function CommentInput({
         {/* Emoji Button - Only visible when isOpen */}
         <div className={`transition-all duration-300 origin-bottom ${isOpen ? 'opacity-100 translate-y-0 scale-100 pointer-events-auto' : 'opacity-0 translate-y-4 scale-50 h-0 overflow-hidden pointer-events-none'}`}>
           <div ref={emojiRef} className="relative">
-            <button type="button" onClick={() => setIsEmojiOpen(o => !o)} aria-label="Emoji" className="bg-white dark:bg-[#3A3B3C] p-3 rounded-full shadow-md text-gray-500 hover:text-blue-500 transition-colors border border-gray-200 dark:border-[#4E4F50]">
+            <button type="button" onClick={() => setIsEmojiOpen(o => !o)} aria-label="Emoji" className="bg-white dark:bg-[#3A3B3C] p-3 rounded-full shadow-md text-gray-500 hover:text-blue-500 active:scale-90 active:bg-gray-100 dark:active:bg-[#4E4F50] transition-all duration-150 border border-gray-200 dark:border-[#4E4F50] select-none">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </button>
             {isEmojiOpen && (
@@ -199,7 +199,7 @@ export default function CommentInput({
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className={`pointer-events-auto bg-blue-500 hover:bg-blue-600 text-white p-3.5 rounded-full shadow-lg transition-transform duration-300 shrink-0 ${isOpen ? 'rotate-12' : 'rotate-0'}`}
+          className={`pointer-events-auto bg-blue-500 hover:bg-blue-600 active:scale-90 active:bg-blue-700 text-white p-3.5 rounded-full shadow-lg transition-all duration-150 shrink-0 select-none ${isOpen ? 'rotate-12' : 'rotate-0'}`}
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />

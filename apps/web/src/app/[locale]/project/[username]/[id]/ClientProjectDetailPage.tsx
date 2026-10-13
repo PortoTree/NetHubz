@@ -89,21 +89,21 @@ const ProjectGallery = ({ mediaUrls }: { mediaUrls: string[] }) => {
       {renderGrid()}
       {selectedMediaIndex !== null && (
         <div className="fixed inset-0 z-[9999] bg-black/95 flex flex-col justify-between items-center backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200" onClick={() => setSelectedMediaIndex(null)}>
-          <button className="absolute top-6 right-6 z-50 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors" onClick={(e) => { e.stopPropagation(); setSelectedMediaIndex(null); }}>
+          <button className="absolute top-6 right-6 z-50 p-2 rounded-full bg-white/10 hover:bg-white/20 active:scale-90 active:bg-white/30 text-white transition-all duration-150 select-none" onClick={(e) => { e.stopPropagation(); setSelectedMediaIndex(null); }}>
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
           <div className="relative flex-1 w-full flex items-center justify-center px-12 md:px-24">
-            {mediaUrls.length > 1 && (<button className="absolute left-4 md:left-10 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors" onClick={handlePrev}><svg className="w-8 h-8 md:w-10 md:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg></button>)}
+            {mediaUrls.length > 1 && (<button className="absolute left-4 md:left-10 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 active:scale-90 active:bg-white/30 text-white transition-all duration-150 select-none" onClick={handlePrev}><svg className="w-8 h-8 md:w-10 md:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg></button>)}
             <div className="w-full max-w-6xl h-[75vh] flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
               <MediaRenderer url={mediaUrls[selectedMediaIndex]} className="max-w-full max-h-full object-contain rounded-lg shadow-2xl" variant="detail" />
             </div>
-            {mediaUrls.length > 1 && (<button className="absolute right-4 md:right-10 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors" onClick={handleNext}><svg className="w-8 h-8 md:w-10 md:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></button>)}
+            {mediaUrls.length > 1 && (<button className="absolute right-4 md:right-10 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 active:scale-90 active:bg-white/30 text-white transition-all duration-150 select-none" onClick={handleNext}><svg className="w-8 h-8 md:w-10 md:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg></button>)}
           </div>
           {mediaUrls.length > 1 && (
             <div className="w-full pb-8 pt-4 bg-gradient-to-t from-black/80 to-transparent flex items-center justify-center px-4" onClick={(e) => e.stopPropagation()}>
               <div className="flex gap-2 md:gap-3 overflow-x-auto pb-2 snap-x max-w-full no-scrollbar">
                 {mediaUrls.map((url, idx) => (
-                  <button key={idx} onClick={() => setSelectedMediaIndex(idx)} className={`relative w-16 h-16 md:w-20 md:h-20 shrink-0 rounded-lg overflow-hidden snap-center transition-all duration-200 ${selectedMediaIndex === idx ? 'ring-2 ring-purple-500 scale-110 opacity-100 z-10' : 'opacity-50 hover:opacity-100'}`}>
+                  <button key={idx} onClick={() => setSelectedMediaIndex(idx)} className={`relative w-16 h-16 md:w-20 md:h-20 shrink-0 rounded-lg overflow-hidden snap-center transition-all duration-150 active:scale-95 select-none ${selectedMediaIndex === idx ? 'ring-2 ring-purple-500 scale-110 opacity-100 z-10' : 'opacity-50 hover:opacity-100'}`}>
                     <MediaRenderer url={url} className="w-full h-full object-cover" variant="thumb" />
                   </button>
                 ))}
@@ -704,7 +704,7 @@ export default function ClientProjectDetailPage({
 
   if (isLoading) {
     return (
-      <div className="flex flex-col min-h-screen bg-[#F0F2F5] dark:bg-[#18191A] pt-20 pb-10">
+      <div className="flex flex-col min-h-screen bg-[#F0F2F5] dark:bg-[#18191A] pt-20 pb-4 md:pb-10">
         <div className="max-w-[900px] mx-auto w-full px-4 animate-pulse">
           <div className="w-48 h-6 bg-gray-300 dark:bg-[#3A3B3C] rounded mb-6"></div>
           <div className="w-full aspect-[16/9] md:aspect-[21/9] bg-gray-300 dark:bg-[#3A3B3C] rounded-2xl mb-10"></div>
@@ -725,7 +725,7 @@ export default function ClientProjectDetailPage({
 
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F0F2F5] dark:bg-[#18191A] pt-20 pb-20">
+    <div className="flex flex-col min-h-screen bg-[#F0F2F5] dark:bg-[#18191A] pt-20 pb-4 md:pb-20">
       <FloatingProjectHubBtn customHref={`/${locale}/project/${decodedUsername}`} customText={`${displayName}'s Projects`} variant="with-dropdown" />
       <FloatingUserMenu isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
       <div className="max-w-[900px] mx-auto w-full px-4">
@@ -759,7 +759,7 @@ export default function ClientProjectDetailPage({
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
-              <Link href={`/${locale}/p/${profileUser.username}/${profileUser.id}`} className="flex items-center gap-3.5 group w-fit">
+              <Link href={`/${locale}/p/${profileUser.username}/${profileUser.id}`} className="flex items-center gap-3.5 group w-fit active:scale-95 transition-transform duration-150">
                 {avatar ? (
                   <img src={avatar} alt={displayName} className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover shadow-sm ring-2 ring-gray-100 dark:ring-[#3A3B3C]/80" />
                 ) : (
@@ -806,7 +806,7 @@ export default function ClientProjectDetailPage({
                         document.getElementById('comments')?.scrollIntoView({ behavior: 'smooth' });
                       }
                     }} 
-                    className="flex items-center gap-2 text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 font-semibold transition-colors text-[14px]"
+                    className="flex items-center gap-2 text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 font-semibold transition-all duration-150 active:scale-95 select-none text-[14px]"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                     {isInteractionLoading ? <div className="w-4 h-4 bg-gray-200 dark:bg-gray-700 animate-pulse rounded-full" /> : <span>{commentCount}</span>}
@@ -818,7 +818,7 @@ export default function ClientProjectDetailPage({
                     <button 
                       onClick={handleSave} 
                       disabled={isSaveLoading}
-                      className="flex items-center gap-2 font-semibold transition-colors text-[14px]"
+                      className="flex items-center gap-2 font-semibold transition-all duration-150 active:scale-90 select-none text-[14px]"
                     >
                       <svg className={`w-5 h-5 ${isSaved ? 'text-orange-500' : 'text-gray-500 dark:text-gray-400 hover:text-orange-600 dark:hover:text-orange-400'}`} fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={isSaved ? 0 : 2} d={isSaved ? "M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" : "M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"} />
@@ -831,7 +831,7 @@ export default function ClientProjectDetailPage({
                   onClick={handleShare} 
                   title={t("share") || "Bagikan"}
                   aria-label={t("share") || "Bagikan"}
-                  className="flex shrink-0 items-center justify-center w-[40px] h-[40px] sm:w-[42px] sm:h-[42px] bg-white dark:bg-[#242526] rounded-full shadow-sm border border-gray-100 dark:border-[#3A3B3C] text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 transition-colors"
+                  className="flex shrink-0 items-center justify-center w-[40px] h-[40px] sm:w-[42px] sm:h-[42px] bg-white dark:bg-[#242526] rounded-full shadow-sm border border-gray-100 dark:border-[#3A3B3C] text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 active:scale-90 active:bg-gray-100 dark:active:bg-[#3A3B3C] transition-all duration-150 select-none"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
                 </button>
@@ -850,7 +850,7 @@ export default function ClientProjectDetailPage({
                 <h3 className="text-[16px] font-bold text-purple-800 dark:text-purple-300 mb-2 flex items-center gap-2"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>{t("roleNeeded")}</h3>
                 <p className="text-purple-700 dark:text-purple-400 text-[15px]">{p.roleNeeded}</p>
               </div>
-              <button onClick={() => { setCollabMessage(t("collabMessageDefault") || "Halo, saya tertarik untuk berkolaborasi dalam project ini."); setIsCollabMessageSent(false); setIsCollabModalOpen(true); }} className="shrink-0 flex items-center justify-center gap-2 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-xl transition-colors shadow-sm shadow-purple-200 dark:shadow-none">
+              <button onClick={() => { setCollabMessage(t("collabMessageDefault") || "Halo, saya tertarik untuk berkolaborasi dalam project ini."); setIsCollabMessageSent(false); setIsCollabModalOpen(true); }} className="shrink-0 flex items-center justify-center gap-2 px-5 py-2.5 bg-purple-600 hover:bg-purple-700 active:scale-95 active:bg-purple-800 text-white font-bold rounded-xl transition-all duration-150 shadow-sm shadow-purple-200 dark:shadow-none select-none">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
                 {t("sendMessage") || "Kirim pesan"}
               </button>
@@ -1054,7 +1054,7 @@ export default function ClientProjectDetailPage({
         </div>
       </div>
 
-      <div className="mt-20 flex justify-center pb-8">
+      <div className="mt-20 flex justify-center pb-2">
         <img src="/logo-horizontal.png" alt="Mencari" className="h-16 grayscale opacity-50 dark:opacity-40" />
       </div>
 

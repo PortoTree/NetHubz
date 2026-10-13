@@ -40,7 +40,7 @@ export default function ProjectStarButtonMobile({
           onToggleStar();
         }}
         disabled={isLoading}
-        className={`flex items-center gap-1 p-1.5 rounded-lg transition-all cursor-pointer ${
+        className={`flex items-center gap-1 p-1.5 rounded-lg transition-all duration-150 active:scale-90 active:bg-gray-100 dark:active:bg-white/10 select-none cursor-pointer ${
           isStarred
             ? "text-amber-600 bg-amber-500/10 dark:text-amber-400 hover:bg-amber-500/15"
             : "hover:bg-gray-100 hover:text-amber-600 dark:hover:bg-[#3A3B3C] dark:hover:text-amber-400"
@@ -79,7 +79,7 @@ export default function ProjectStarButtonMobile({
               });
             }
           }}
-          className="cursor-pointer hover:underline text-[#65676B] dark:text-[#B0B3B8] font-semibold text-[13px]"
+          className="cursor-pointer hover:underline text-[#65676B] dark:text-[#B0B3B8] font-semibold text-[13px] active:scale-95 transition-transform duration-150 select-none inline-block"
           title={t("viewStargazers") || "Lihat pemberi bintang"}
         >
           {formatStarCount(starCount)}

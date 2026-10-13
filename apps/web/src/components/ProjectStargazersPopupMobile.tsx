@@ -156,7 +156,7 @@ export default function ProjectStargazersPopupMobile({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#3A3B3C] active:bg-gray-200 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#3A3B3C] active:scale-90 active:bg-gray-200 dark:active:bg-[#3A3B3C] transition-all duration-150 select-none cursor-pointer"
             title={t("close") || "Close"}
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -195,7 +195,7 @@ export default function ProjectStargazersPopupMobile({
                   key={itemKey}
                   href={`/${locale}/project/${u.username}`}
                   onClick={onClose}
-                  className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-[#3A3B3C] active:bg-gray-200 dark:active:bg-[#4E4F50] transition-colors group cursor-pointer"
+                  className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-[#3A3B3C] active:scale-[0.98] active:bg-gray-200 dark:active:bg-[#4E4F50] transition-all duration-150 select-none group cursor-pointer"
                 >
                   {avatar ? (
                     <img

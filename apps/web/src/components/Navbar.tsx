@@ -553,7 +553,7 @@ export default function Navbar({
           <div className="relative group flex sm:hidden">
             <button
               onClick={() => router.push(`/${locale}/chatting`)}
-              className={`w-[38px] h-[38px] rounded-full flex items-center justify-center transition-colors bg-[#E4E6EB] dark:bg-[#3A3B3C] hover:bg-[#F3F2EF] dark:hover:bg-[#18191A]`}
+              className={`w-[38px] h-[38px] rounded-full flex items-center justify-center transition-all duration-150 active:scale-90 active:bg-gray-200 dark:active:bg-white/10 bg-[#E4E6EB] dark:bg-[#3A3B3C] hover:bg-[#F3F2EF] dark:hover:bg-[#18191A]`}
             >
               <div 
                 className="w-[20px] h-[20px] bg-sky-500 dark:bg-sky-400"
@@ -569,7 +569,7 @@ export default function Navbar({
             <button
               ref={notifBtnRef}
               onClick={() => setIsNotifPanelOpen(!isNotifPanelOpen)}
-              className={`w-[38px] h-[38px] sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-colors overflow-hidden ${isNotifPanelOpen ? "bg-[#D8F0E2] dark:bg-[#203D2E]" : "bg-[#E4E6EB] dark:bg-[#3A3B3C] hover:bg-[#F3F2EF] dark:hover:bg-[#18191A]"}`}
+              className={`w-[38px] h-[38px] sm:w-11 sm:h-11 rounded-full flex items-center justify-center transition-all duration-150 active:scale-90 active:bg-gray-200 dark:active:bg-white/10 overflow-hidden ${isNotifPanelOpen ? "bg-[#D8F0E2] dark:bg-[#203D2E]" : "bg-[#E4E6EB] dark:bg-[#3A3B3C] hover:bg-[#F3F2EF] dark:hover:bg-[#18191A]"}`}
             >
               <img
                 src="/pemberitahuan.svg"
@@ -718,7 +718,7 @@ export default function Navbar({
               className="relative cursor-pointer group sm:hidden flex items-center justify-center"
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             >
-              <button className={`w-[38px] h-[38px] flex items-center justify-center transition-colors rounded-full ${isDropdownOpen ? "bg-[#D8F0E2] dark:bg-[#203D2E] text-emerald-600 dark:text-emerald-400" : "bg-[#E4E6EB] dark:bg-[#3A3B3C] hover:bg-[#F3F2EF] dark:hover:bg-[#18191A] text-black dark:text-[#E4E6EB]"}`}>
+              <button className={`w-[38px] h-[38px] flex items-center justify-center transition-all duration-150 active:scale-90 active:bg-gray-200 dark:active:bg-white/10 rounded-full ${isDropdownOpen ? "bg-[#D8F0E2] dark:bg-[#203D2E] text-emerald-600 dark:text-emerald-400" : "bg-[#E4E6EB] dark:bg-[#3A3B3C] hover:bg-[#F3F2EF] dark:hover:bg-[#18191A] text-black dark:text-[#E4E6EB]"}`}>
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
@@ -742,7 +742,7 @@ export default function Navbar({
             {isDropdownOpen && (
               <div className="sm:hidden absolute right-0 mt-3 w-[260px] bg-white dark:bg-[#242526] rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.15)] border border-gray-200 dark:border-[#3E4042] p-3 z-[10200]">
                 <div className="space-y-1 sm:space-y-2">
-                  <button className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] transition-colors group/item">
+                  <button className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:bg-gray-200 dark:active:bg-[#3A3B3C] active:scale-[0.98] transition-all duration-150 group/item">
                     <div className="flex items-center gap-2 sm:gap-3">
                       <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#E4E6EB] dark:bg-[#3A3B3C] flex items-center justify-center shrink-0 overflow-hidden">
                         <svg
@@ -774,7 +774,7 @@ export default function Navbar({
                     </svg>
                   </button>
 
-                  <button className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] transition-colors group/item">
+                  <button className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:bg-gray-200 dark:active:bg-[#3A3B3C] active:scale-[0.98] transition-all duration-150 group/item">
                     <div className="flex items-center gap-2 sm:gap-3">
                       <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#E4E6EB] dark:bg-[#3A3B3C] flex items-center justify-center shrink-0 overflow-hidden">
                         <svg
@@ -806,7 +806,7 @@ export default function Navbar({
                     </svg>
                   </button>
 
-                  <button className="w-full flex items-center gap-2 sm:gap-3 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] transition-colors">
+                  <button className="w-full flex items-center gap-2 sm:gap-3 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:bg-gray-200 dark:active:bg-[#3A3B3C] active:scale-[0.98] transition-all duration-150">
                     <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#E4E6EB] dark:bg-[#3A3B3C] flex items-center justify-center shrink-0 overflow-hidden">
                       <svg
                         className="w-[18px] h-[18px] sm:w-[20px] sm:h-[20px] text-black dark:text-[#E4E6EB]"
@@ -833,7 +833,7 @@ export default function Navbar({
                         e.preventDefault();
                         setIsMobileLangOpen(!isMobileLangOpen);
                       }}
-                      className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] transition-colors"
+                      className="w-full flex items-center justify-between p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:bg-gray-200 dark:active:bg-[#3A3B3C] active:scale-[0.98] transition-all duration-150"
                     >
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-[#E4E6EB] dark:bg-[#3A3B3C] flex items-center justify-center shrink-0 overflow-hidden">
@@ -871,7 +871,7 @@ export default function Navbar({
                             const pathWithoutLocale = currentPath.replace(/^\/(id|en)/, "");
                             window.location.href = "/id" + (pathWithoutLocale || "/home");
                           }}
-                          className={`w-full flex items-center gap-2 p-1.5 rounded-lg transition-colors ${locale === "id" ? "bg-[#E4E6EB] dark:bg-[#3A3B3C]" : "hover:bg-gray-200 dark:hover:bg-[#3A3B3C]"}`}
+                          className={`w-full flex items-center gap-2 p-1.5 rounded-lg active:scale-[0.98] transition-all duration-150 ${locale === "id" ? "bg-[#E4E6EB] dark:bg-[#3A3B3C]" : "hover:bg-gray-200 dark:hover:bg-[#3A3B3C]"}`}
                         >
                           <svg className="w-[16px] h-[16px] rounded-sm shrink-0 shadow-[0_0_2px_rgba(0,0,0,0.2)]" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path fill="#ED2939" d="M0 0h36v18H0z" />
@@ -887,7 +887,7 @@ export default function Navbar({
                             const pathWithoutLocale = currentPath.replace(/^\/(id|en)/, "");
                             window.location.href = "/en" + (pathWithoutLocale || "/home");
                           }}
-                          className={`w-full flex items-center gap-2 p-1.5 rounded-lg transition-colors ${locale === "en" ? "bg-[#E4E6EB] dark:bg-[#3A3B3C]" : "hover:bg-gray-200 dark:hover:bg-[#3A3B3C]"}`}
+                          className={`w-full flex items-center gap-2 p-1.5 rounded-lg active:scale-[0.98] transition-all duration-150 ${locale === "en" ? "bg-[#E4E6EB] dark:bg-[#3A3B3C]" : "hover:bg-gray-200 dark:hover:bg-[#3A3B3C]"}`}
                         >
                           <svg className="w-[16px] h-[16px] rounded-sm shrink-0 shadow-[0_0_2px_rgba(0,0,0,0.2)]" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path fill="#0A3161" d="M0 0h36v36H0z" />
@@ -904,7 +904,7 @@ export default function Navbar({
 
                   <button
                     onClick={() => setIsDarkMode(!isDarkMode)}
-                    className="w-full flex items-center gap-2 sm:gap-3 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] transition-colors"
+                    className="w-full flex items-center gap-2 sm:gap-3 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:bg-gray-200 dark:active:bg-[#3A3B3C] active:scale-[0.98] transition-all duration-150"
                   >
                     <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#E4E6EB] dark:bg-[#3A3B3C] flex items-center justify-center shrink-0 overflow-hidden">
                       {isDarkMode ? (

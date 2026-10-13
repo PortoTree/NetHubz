@@ -327,7 +327,7 @@ export default function BottomNav() {
           <button
             type="button"
             onClick={() => go("home")}
-            className={`flex flex-col items-center justify-center w-16 h-full transition-colors ${
+            className={`flex flex-col items-center justify-center w-16 h-full transition-all duration-150 active:scale-90 select-none ${
               tab === "home" ? "text-emerald-500 font-semibold" : "text-gray-500 hover:text-gray-900 dark:text-[#B0B3B8] dark:hover:text-[#E4E6EB]"
             }`}
           >
@@ -345,7 +345,7 @@ export default function BottomNav() {
           <button
             type="button"
             onClick={() => go("product")}
-            className={`flex flex-col items-center justify-center w-16 h-full transition-colors ${
+            className={`flex flex-col items-center justify-center w-16 h-full transition-all duration-150 active:scale-90 select-none ${
               tab === "product" ? "text-emerald-500 font-semibold" : "text-gray-500 hover:text-gray-900 dark:text-[#B0B3B8] dark:hover:text-[#E4E6EB]"
             }`}
           >
@@ -363,7 +363,7 @@ export default function BottomNav() {
           <button
             type="button"
             onClick={() => go("project")}
-            className={`flex flex-col items-center justify-center w-16 h-full transition-colors ${
+            className={`flex flex-col items-center justify-center w-16 h-full transition-all duration-150 active:scale-90 select-none ${
               tab === "project" ? "text-emerald-500 font-semibold" : "text-gray-500 hover:text-gray-900 dark:text-[#B0B3B8] dark:hover:text-[#E4E6EB]"
             }`}
           >
@@ -381,7 +381,7 @@ export default function BottomNav() {
           <button
             type="button"
             onClick={() => go("explore")}
-            className={`flex flex-col items-center justify-center w-16 h-full transition-colors ${
+            className={`flex flex-col items-center justify-center w-16 h-full transition-all duration-150 active:scale-90 select-none ${
               tab === "explore" ? "text-emerald-500 font-semibold" : "text-gray-500 hover:text-gray-900 dark:text-[#B0B3B8] dark:hover:text-[#E4E6EB]"
             }`}
           >
@@ -402,7 +402,7 @@ export default function BottomNav() {
               if (currentUser) router.push(`/${locale}/p/${currentUser.username || currentUser.id}/${currentUser.id}`);
               else go("profile");
             }}
-            className={`flex flex-col items-center justify-center w-16 h-full transition-colors ${
+            className={`flex flex-col items-center justify-center w-16 h-full transition-all duration-150 active:scale-90 select-none ${
               tab === "profile" ? "text-emerald-500" : "text-gray-500 dark:text-[#B0B3B8]"
             }`}
           >
@@ -570,7 +570,7 @@ export default function BottomNav() {
                     setSnap("collapsed");
                     router.push(`/${locale}/login`);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-[#3A3B3C] text-left transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-[#3A3B3C] active:bg-gray-100 dark:active:bg-[#3A3B3C] active:scale-[0.98] text-left transition-all duration-150 cursor-pointer"
                 >
                   <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#3A3B3C] flex items-center justify-center shrink-0">
                     <svg className="w-4 h-4 text-gray-700 dark:text-[#E4E6EB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -592,7 +592,7 @@ export default function BottomNav() {
                     document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
                     window.location.href = `/login`;
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 dark:hover:bg-red-950/20 text-red-600 dark:text-red-400 text-left transition-colors"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 dark:hover:bg-red-950/20 active:bg-red-100 dark:active:bg-red-950/40 active:scale-[0.98] text-red-600 dark:text-red-400 text-left transition-all duration-150 cursor-pointer"
                 >
                   <div className="w-8 h-8 rounded-full bg-red-50 dark:bg-red-950/30 flex items-center justify-center shrink-0">
                     <svg className="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -612,7 +612,7 @@ export default function BottomNav() {
                 e.stopPropagation();
                 setIsAccountMenuOpen(!isAccountMenuOpen);
               }}
-              className="flex items-center justify-between p-2.5 rounded-2xl bg-white dark:bg-[#323334] hover:bg-gray-50 dark:hover:bg-[#3A3B3C] border border-gray-200/90 dark:border-[#3E4042] shadow-[0_3px_12px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.4)] cursor-pointer group transition-all active:scale-[0.99]"
+              className="flex items-center justify-between p-2.5 rounded-2xl bg-white dark:bg-[#323334] hover:bg-gray-50 dark:hover:bg-[#3A3B3C] border border-gray-200/90 dark:border-[#3E4042] shadow-[0_3px_12px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.04)] dark:shadow-[0_4px_16px_rgba(0,0,0,0.4)] cursor-pointer group transition-all duration-150 active:scale-[0.98] active:bg-gray-50 dark:active:bg-[#323334]"
             >
               <div className="flex items-center gap-3 min-w-0">
                 <img
