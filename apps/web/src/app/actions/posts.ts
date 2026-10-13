@@ -1,8 +1,42 @@
 "use server";
 
-import { revalidateTag } from "next/cache";
+import { revalidateTag, revalidatePath } from "next/cache";
 
 import prisma from "@/utils/prisma";
+import { getPostRevalidationPaths } from "@/utils/postCache";
+
+// KASTA 2: Aggressive Revalidation based on Cache_system.md
+async function invalidatePostCache(authorId: string, postId?: string) {
+  try {
+    const owner = await prisma.user.findUnique({
+      where: { id: authorId },
+      select: { username: true }
+    });
+
+    const paths = getPostRevalidationPaths({
+      postId,
+      username: owner?.username,
+      userId: authorId,
+    });
+
+    for (const p of paths) {
+      try {
+        revalidatePath(p, "page");
+      } catch {}
+    }
+  } catch (err) {
+    console.error("Error computing post revalidation paths:", err);
+  }
+
+  try {
+    revalidateTag("feed_posts", "page");
+    revalidateTag("global_posts", "page");
+    revalidateTag(`profile_posts_${authorId}`, "page");
+    if (postId) {
+      revalidateTag(`post_${postId}`, "page");
+    }
+  } catch {}
+}
 
 // Public giveaway fields — rewardLink is intentionally excluded (secret)
 const GIVEAWAY_PUBLIC_SELECT = {
@@ -251,9 +285,7 @@ export async function createPost(data: {
       );
     }
 
-    revalidateTag("feed_posts", "page");
-    revalidateTag("global_posts", "page");
-    revalidateTag(`profile_posts_${data.authorId}`, "page");
+    await invalidatePostCache(data.authorId, newPost.id);
 
     return { success: true, post: await mapPost(newPost) };
   } catch (error: any) {
@@ -412,9 +444,7 @@ export async function deletePost(postId: string, authorId: string) {
       }
     }
 
-    revalidateTag("feed_posts", "page");
-    revalidateTag("global_posts", "page");
-    revalidateTag(`profile_posts_${authorId}`, "page");
+    await invalidatePostCache(authorId, postId);
 
     return { success: true };
   } catch (error: any) {
@@ -473,9 +503,7 @@ export async function updatePost(postId: string, authorId: string, content: stri
       }
     });
 
-    revalidateTag("feed_posts", "page");
-    revalidateTag("global_posts", "page");
-    revalidateTag(`profile_posts_${authorId}`, "page");
+    await invalidatePostCache(authorId, postId);
 
     return { success: true, post: await mapPost(updatedPost) };
   } catch (error: any) {

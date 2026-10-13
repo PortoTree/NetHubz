@@ -3,6 +3,11 @@
 import prisma from "@/utils/prisma";
 import { updateTag, unstable_cache, revalidatePath } from "next/cache";
 import { ProjectCategory, CollabType } from "@prisma/client";
+import {
+  prepareProjectMediaCreates,
+  resolveProjectMediaUrls,
+  getProjectMediaToDelete,
+} from "@/utils/projectMedia";
 
 function extractNethubzProductId(url: string | undefined): string | null {
   if (!url) return null;
@@ -82,6 +87,12 @@ export async function createProject(data: CreateProjectInput) {
       linkedProductId = extractNethubzProductId(data.linkedProductUrl);
     }
 
+    const projectMediaCreates = prepareProjectMediaCreates(
+      data.userId,
+      data.coverUrls || [],
+      data.mediaUrls || []
+    );
+
     const project = await prisma.project.create({
       data: {
         userId: data.userId,
@@ -93,6 +104,9 @@ export async function createProject(data: CreateProjectInput) {
         demoUrl: data.demoUrl || null,
         coverUrls: data.coverUrls || [],
         mediaUrls: data.mediaUrls || [],
+        projectMedia: projectMediaCreates.length > 0 ? {
+          create: projectMediaCreates,
+        } : undefined,
         roleNeeded: data.roleNeeded || null,
         category: data.category || "WEB_DEV",
         customCategory: data.customCategory || null,
@@ -100,11 +114,18 @@ export async function createProject(data: CreateProjectInput) {
         linkedProductId: linkedProductId,
         isForSale: data.isForSale || false,
       },
+      include: {
+        projectMedia: {
+          include: { media: true },
+          orderBy: { order: "asc" },
+        },
+      },
     });
 
     await invalidateUserProjects(data.userId, project.id);
 
-    return { success: true, project };
+    const resolved = resolveProjectMediaUrls(project);
+    return { success: true, project: { ...project, ...resolved } };
   } catch (error: any) {
     console.error("createProject Error:", error);
     return { success: false, error: error.message || "Failed to create project" };
@@ -154,12 +175,20 @@ export const getAllProjects = async () => {
                 profile: true
               }
             },
+            projectMedia: {
+              include: { media: true },
+              orderBy: { order: "asc" }
+            },
             _count: {
               select: { likes: true, comments: true }
             }
           }
         });
-        return { success: true, projects };
+        const mapped = projects.map(p => {
+          const resolved = resolveProjectMediaUrls(p);
+          return { ...p, ...resolved };
+        });
+        return { success: true, projects: mapped };
       },
       ['getAllProjects'],
       { tags: ['global_projects'] }
@@ -196,6 +225,10 @@ export const getProjectsByUsername = async (username: string) => {
             user: {
               select: { id: true, username: true, profile: true }
             },
+            projectMedia: {
+              include: { media: true },
+              orderBy: { order: "asc" }
+            },
             _count: {
               select: {
                 likes: true,
@@ -205,7 +238,12 @@ export const getProjectsByUsername = async (username: string) => {
           }
         });
 
-        return { success: true, projects, user };
+        const mapped = projects.map(p => {
+          const resolved = resolveProjectMediaUrls(p);
+          return { ...p, ...resolved };
+        });
+
+        return { success: true, projects: mapped, user };
       },
       ['getProjectsByUsername_v4', String(username)],
       { tags: [`projects-${username}`] }
@@ -228,6 +266,10 @@ export const getProjectById = async (id: string) => {
                 profile: true
               }
             },
+            projectMedia: {
+              include: { media: true },
+              orderBy: { order: "asc" }
+            },
             _count: {
               select: {
                 likes: true,
@@ -244,7 +286,8 @@ export const getProjectById = async (id: string) => {
         // NOTE: hasLiked is fetched separately in Client Component via SWR
         // We do not cache personal interactions globally.
 
-        return { success: true, project: { ...project } };
+        const resolved = resolveProjectMediaUrls(project);
+        return { success: true, project: { ...project, ...resolved } };
       },
       ['getProjectById', String(id)],
       { tags: ["global_projects", `project_${id}`] }
@@ -259,6 +302,11 @@ export async function deleteProject(id: string, userId: string) {
   try {
     const project = await prisma.project.findUnique({
       where: { id },
+      include: {
+        projectMedia: {
+          include: { media: true }
+        }
+      }
     });
 
     if (!project) {
@@ -269,22 +317,29 @@ export async function deleteProject(id: string, userId: string) {
       return { success: false, error: "Unauthorized" };
     }
 
-    // Hapus cover project di Cloudinary jika ada
-    if (project.coverUrls && project.coverUrls.length > 0) {
+    // Bersihkan seluruh aset media (cover & media showcase) dari Cloudinary & DB
+    const mediaToDelete = getProjectMediaToDelete(project);
+    if (mediaToDelete.length > 0) {
       try {
         const { deleteFromCloudinary } = await import('@/lib/cloudinary');
-        for (const url of project.coverUrls) {
-          // Ekstrak publicId dari URL Cloudinary
-          // Contoh URL: https://res.cloudinary.com/ecdhyrfa/image/upload/v1234/project-cover/img_abc.png
-          // publicId: project-cover/img_abc
-          const match = url.match(/\/v\d+\/(.+?)\.[a-z0-9]+$/i);
-          if (match && match[1]) {
-            const publicId = match[1];
-            await deleteFromCloudinary(publicId, "image");
+        for (const item of mediaToDelete) {
+          try {
+            await deleteFromCloudinary(item.publicId, item.type);
+            if (item.mediaId) {
+              const stillUsedInPost = await prisma.postMedia.findFirst({ where: { mediaId: item.mediaId } });
+              const stillUsedInOtherProject = await prisma.projectMedia.findFirst({
+                where: { mediaId: item.mediaId, projectId: { not: id } }
+              });
+              if (!stillUsedInPost && !stillUsedInOtherProject) {
+                await prisma.media.delete({ where: { id: item.mediaId } });
+              }
+            }
+          } catch (delErr) {
+            console.error("Gagal hapus media Cloudinary/DB:", delErr);
           }
         }
       } catch (e) {
-        console.error("Failed to delete project cover from Cloudinary:", e);
+        console.error("Failed to delete project media from Cloudinary:", e);
       }
     }
 
@@ -350,11 +405,41 @@ export async function updateProject(id: string, userId: string, data: {
         collabTypes: data.collabTypes !== undefined ? data.collabTypes : project.collabTypes,
         linkedProductId: linkedProductId,
         isForSale: data.isForSale !== undefined ? data.isForSale : project.isForSale,
+      },
+      include: {
+        projectMedia: {
+          include: { media: true },
+          orderBy: { order: "asc" }
+        }
       }
     });
+
+    if (data.coverUrls !== undefined || data.mediaUrls !== undefined) {
+      const nextCovers = data.coverUrls !== undefined ? data.coverUrls : project.coverUrls;
+      const nextMedia = data.mediaUrls !== undefined ? data.mediaUrls : project.mediaUrls;
+      try {
+        await prisma.projectMedia.deleteMany({ where: { projectId: id } });
+        const newCreates = prepareProjectMediaCreates(project.userId, nextCovers, nextMedia);
+        if (newCreates.length > 0) {
+          for (const item of newCreates) {
+            await prisma.projectMedia.create({
+              data: {
+                projectId: id,
+                order: item.order,
+                isCover: item.isCover,
+                media: item.media,
+              }
+            });
+          }
+        }
+      } catch (pmErr) {
+        console.error("Error updating projectMedia:", pmErr);
+      }
+    }
     
     await invalidateUserProjects(project.userId, id);
-    return { success: true, project: updated };
+    const resolved = resolveProjectMediaUrls(updated);
+    return { success: true, project: { ...updated, ...resolved } };
   } catch (error: any) {
     console.error("updateProject Error:", error);
     return { success: false, error: error.message || "Failed to update project" };
