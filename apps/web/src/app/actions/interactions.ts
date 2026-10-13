@@ -14,18 +14,34 @@ export async function toggleLike(userId: string, targetType: "post" | "comment" 
       },
     });
 
+    const revalidateInteraction = async () => {
+      try {
+        if (targetType === "project") {
+          updateTag(`project_${targetId}`);
+          updateTag("global_projects");
+          const project = await prisma.project.findUnique({
+            where: { id: targetId },
+            select: { user: { select: { username: true } } }
+          });
+          if (project?.user?.username) {
+            updateTag(`projects-${project.user.username}`);
+          }
+        } else if (targetType === "post") {
+          updateTag(`post_${targetId}`);
+          updateTag("feed_posts");
+        }
+      } catch (err) {
+        console.error("Revalidation error:", err);
+      }
+    };
+
     if (existingLike) {
       if (existingLike.type === reactionType) {
         // Same reaction, remove it
         await prisma.like.delete({
           where: { id: existingLike.id },
         });
-        if (targetType === "project") {
-          updateTag(`project_${targetId}`);
-          updateTag("global_projects");
-        } else if (targetType === "post") {
-          updateTag(`post_${targetId}`);
-        }
+        await revalidateInteraction();
         return { success: true, action: "unliked" };
       } else {
         // Different reaction, update it
@@ -33,12 +49,7 @@ export async function toggleLike(userId: string, targetType: "post" | "comment" 
           where: { id: existingLike.id },
           data: { type: reactionType },
         });
-        if (targetType === "project") {
-          updateTag(`project_${targetId}`);
-          updateTag("global_projects");
-        } else if (targetType === "post") {
-          updateTag(`post_${targetId}`);
-        }
+        await revalidateInteraction();
         return { success: true, action: "updated" };
       }
     } else {
@@ -92,18 +103,7 @@ export async function toggleLike(userId: string, targetType: "post" | "comment" 
         });
       }
 
-      if (targetType === "project") {
-        updateTag(`project_${targetId}`);
-        updateTag("global_projects");
-      } else if (targetType === "post") {
-        updateTag(`post_${targetId}`);
-      }
-      if (targetType === "project") {
-        updateTag(`project_${targetId}`);
-        updateTag("global_projects");
-      } else if (targetType === "post") {
-        updateTag(`post_${targetId}`);
-      }
+      await revalidateInteraction();
       return { success: true, action: "liked" };
     }
   } catch (error: any) {
@@ -271,6 +271,18 @@ export async function addComment(userId: string, targetType: "post" | "project",
       } catch (e) {
         console.error("Failed to create mention notifications:", e);
       }
+    }
+
+    if (targetType === "post") {
+      try {
+        updateTag(`post_${targetId}`);
+        updateTag("global_posts");
+      } catch (e) {}
+    } else if (targetType === "project") {
+      try {
+        updateTag(`project_${targetId}`);
+        updateTag("global_projects");
+      } catch (e) {}
     }
 
     return { success: true, comment };

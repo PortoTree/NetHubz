@@ -390,9 +390,21 @@ export default function ClientProjectDetailPage({
     loadInteractions();
     fetchComments();
     const handleRefresh = () => { loadInteractions(); fetchComments(); };
+    const handleProjectSync = (e: any) => {
+      if (e.detail?.projectId === id) {
+        if (e.detail.myReaction !== undefined) setMyReaction(e.detail.myReaction);
+        if (e.detail.likeCount !== undefined) setLikeCount(e.detail.likeCount);
+        if (e.detail.commentCount !== undefined) setCommentCount(e.detail.commentCount);
+        if (e.detail.hasSaved !== undefined) setIsSaved(e.detail.hasSaved);
+      }
+    };
     window.addEventListener("refresh_projects", handleRefresh);
-    return () => window.removeEventListener("refresh_projects", handleRefresh);
-  }, [loadInteractions, fetchComments]);
+    window.addEventListener("project_interaction_updated", handleProjectSync);
+    return () => {
+      window.removeEventListener("refresh_projects", handleRefresh);
+      window.removeEventListener("project_interaction_updated", handleProjectSync);
+    };
+  }, [loadInteractions, fetchComments, id]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -444,6 +456,16 @@ export default function ClientProjectDetailPage({
     });
     invalidateStargazersCache(id);
 
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("project_interaction_updated", {
+        detail: {
+          projectId: id,
+          myReaction: next.isStarred ? "STAR" : null,
+          likeCount: next.starCount,
+        }
+      }));
+    }
+
     try {
       const res = await toggleLike(activeUserId, "project", id, "STAR");
       if (!res.success) {
@@ -454,8 +476,15 @@ export default function ClientProjectDetailPage({
           myReaction: prevStarred ? "STAR" : null,
           likeCount: likeCount,
         });
-      } else {
-        window.dispatchEvent(new Event("refresh_projects"));
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("project_interaction_updated", {
+            detail: {
+              projectId: id,
+              myReaction: prevStarred ? "STAR" : null,
+              likeCount: likeCount,
+            }
+          }));
+        }
       }
     } catch (e) {
       setMyReaction(prevStarred ? "STAR" : null);
@@ -465,6 +494,15 @@ export default function ClientProjectDetailPage({
         myReaction: prevStarred ? "STAR" : null,
         likeCount: likeCount,
       });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("project_interaction_updated", {
+          detail: {
+            projectId: id,
+            myReaction: prevStarred ? "STAR" : null,
+            likeCount: likeCount,
+          }
+        }));
+      }
     } finally {
       setIsLikeLoading(false);
     }
@@ -600,6 +638,7 @@ export default function ClientProjectDetailPage({
     if (!user) return;
     const res = await addComment(user.id, "project", id, text, parentId);
     if (res.success && res.comment) {
+      const userKey = user?.id || (typeof window !== "undefined" ? getClientTokenUser()?.id : "guest");
       const appendReply = (list: any[], pid: string): any[] => list.map(c => {
         if (c.id === pid) return { ...c, optimisticReplies: [...(c.optimisticReplies || []), res.comment] };
         if (c.optimisticReplies) return { ...c, optimisticReplies: appendReply(c.optimisticReplies, pid) };
@@ -607,12 +646,25 @@ export default function ClientProjectDetailPage({
       });
       setComments(prev => {
         const next = appendReply(prev, parentId);
-        const userKey = user?.id || (typeof window !== "undefined" ? getClientTokenUser()?.id : "guest");
         const cacheKey = `project_${id}_${userKey}`;
         const existing = commentsCache.get(cacheKey);
         commentsCache.set(cacheKey, { comments: next, nextCursor: existing?.nextCursor });
         return next;
       });
+      const nextCount = commentCount + 1;
+      setCommentCount(nextCount);
+      const intCacheKey = `interaction_project_${id}_${userKey}`;
+      if (interactionsCache.has(intCacheKey)) {
+        interactionsCache.set(intCacheKey, {
+          ...interactionsCache.get(intCacheKey),
+          commentCount: nextCount
+        });
+      }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("project_interaction_updated", {
+          detail: { projectId: id, commentCount: nextCount }
+        }));
+      }
       setReplyingTo(null);
     }
   };
@@ -671,15 +723,28 @@ export default function ClientProjectDetailPage({
     setIsSubmitting(true);
     const res = await addComment(user.id, "project", id, commentInput);
     if (res.success && res.comment) { 
+      const userKey = user?.id || (typeof window !== "undefined" ? getClientTokenUser()?.id : "guest");
       setComments(prev => {
         const next = [res.comment, ...prev];
-        const userKey = user?.id || (typeof window !== "undefined" ? getClientTokenUser()?.id : "guest");
         const cacheKey = `project_${id}_${userKey}`;
         const existing = commentsCache.get(cacheKey);
         commentsCache.set(cacheKey, { comments: next, nextCursor: existing?.nextCursor });
         return next;
       }); 
-      setCommentCount(prev => prev + 1);
+      const nextCount = commentCount + 1;
+      setCommentCount(nextCount);
+      const intCacheKey = `interaction_project_${id}_${userKey}`;
+      if (interactionsCache.has(intCacheKey)) {
+        interactionsCache.set(intCacheKey, {
+          ...interactionsCache.get(intCacheKey),
+          commentCount: nextCount
+        });
+      }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("project_interaction_updated", {
+          detail: { projectId: id, commentCount: nextCount }
+        }));
+      }
       setCommentInput(""); 
       if (editor) editor.commands.clearContent();
     }

@@ -472,7 +472,7 @@ export default function CreatePostModal({ isOpen, onClose, currentUser, onSucces
         {/* Header */}
         <div className="flex items-center max-sm:justify-start justify-center p-4 border-b border-gray-200 dark:border-[#3E4042] relative">
           <h2 className="text-[20px] font-bold text-black dark:text-[#E4E6EB]">{initialPost ? t("feed.editPostModalTitle") : t("feed.createPostModalTitle")}</h2>
-          <button onClick={isPosting ? undefined : onClose} disabled={isPosting} className={`absolute right-4 w-9 h-9 bg-gray-200 dark:bg-[#3A3B3C] rounded-full flex items-center justify-center hover:bg-gray-300 dark:hover:bg-[#4E4F50] transition-colors text-gray-600 dark:text-[#B0B3B8] ${isPosting ? 'opacity-40 cursor-not-allowed' : ''}`}>
+          <button onClick={isPosting ? undefined : onClose} disabled={isPosting} className={`absolute right-4 w-9 h-9 bg-gray-200 dark:bg-[#3A3B3C] rounded-full flex items-center justify-center hover:bg-gray-300 dark:hover:bg-[#4E4F50] active:scale-90 active:bg-gray-300 dark:active:bg-[#4E4F50] transition-all duration-150 text-gray-600 dark:text-[#B0B3B8] select-none ${isPosting ? 'opacity-40 cursor-not-allowed' : ''}`}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
@@ -486,7 +486,7 @@ export default function CreatePostModal({ isOpen, onClose, currentUser, onSucces
               <h3 className="font-semibold text-[15px] text-black dark:text-[#E4E6EB]">{currentUser?.profile?.displayName || currentUser?.displayName || currentUser?.username}</h3>
               <div className="flex items-center gap-2 mt-0.5">
                 <div className="relative" ref={labelDropdownRef}>
-                  <button onClick={() => setIsLabelDropdownOpen(!isLabelDropdownOpen)} className="flex items-center gap-1 bg-gray-200 dark:bg-[#3A3B3C] px-2 py-0.5 rounded-md text-[12px] font-semibold text-gray-700 dark:text-[#E4E6EB]">
+                  <button onClick={() => setIsLabelDropdownOpen(!isLabelDropdownOpen)} className="flex items-center gap-1 bg-gray-200 dark:bg-[#3A3B3C] px-2 py-0.5 rounded-md text-[12px] font-semibold text-gray-700 dark:text-[#E4E6EB] active:scale-95 transition-all duration-150 select-none">
                     <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M17.707 9.293a1 1 0 010 1.414l-7 7a1 1 0 01-1.414 0l-7-7A.997.997 0 012 10V5a3 3 0 013-3h5c.256 0 .512.098.707.293l7 7zM5 6a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" /></svg>
                     {postLabel === "DEFAULT" ? t("postLabel.default") : postLabel === "MENCARI" ? t("postLabel.mencariShort") : postLabel === "LOKASI" ? t("postLabel.lokasi") : postLabel === "PROFESI" ? t("postLabel.profesi") : t("postLabel.sekolah")}
                     <svg className="w-3.5 h-3.5 ml-0.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" /></svg>
@@ -523,7 +523,7 @@ export default function CreatePostModal({ isOpen, onClose, currentUser, onSucces
                   <button 
                     onClick={() => setIsGalleryDropdownOpen(!isGalleryDropdownOpen)} 
                     disabled={mediaPreviewList.length === 0 && tempFilePreviews.length === 0}
-                    className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[12px] font-semibold ${
+                    className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[12px] font-semibold active:scale-95 transition-all duration-150 select-none ${
                       (mediaPreviewList.length === 0 && tempFilePreviews.length === 0) 
                         ? 'bg-gray-100 dark:bg-[#3A3B3C]/50 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                         : 'bg-gray-200 dark:bg-[#3A3B3C] text-gray-700 dark:text-[#E4E6EB]'
@@ -556,7 +556,7 @@ export default function CreatePostModal({ isOpen, onClose, currentUser, onSucces
                 <div className="relative" ref={privacyDropdownRef}>
                   <button 
                     onClick={() => postLabel !== "MENCARI" && setIsPrivacyDropdownOpen(!isPrivacyDropdownOpen)} 
-                    className={`flex items-center gap-1 bg-gray-200 dark:bg-[#3A3B3C] px-2 py-0.5 rounded-md text-[12px] font-semibold text-gray-700 dark:text-[#E4E6EB] ${postLabel === "MENCARI" ? "opacity-50 cursor-not-allowed" : ""}`}
+                    className={`flex items-center gap-1 bg-gray-200 dark:bg-[#3A3B3C] px-2 py-0.5 rounded-md text-[12px] font-semibold text-gray-700 dark:text-[#E4E6EB] active:scale-95 transition-all duration-150 select-none ${postLabel === "MENCARI" ? "opacity-50 cursor-not-allowed" : ""}`}
                   >
                     {postPrivacy === "PUBLIC" ? (
                       <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clipRule="evenodd" /></svg>
@@ -858,7 +858,7 @@ export default function CreatePostModal({ isOpen, onClose, currentUser, onSucces
             <span className="font-semibold text-[15px] text-black dark:text-[#E4E6EB]">{t("feed.addToYourPost")}</span>
             <div className="flex items-center gap-1">
               {/* Photo */}
-              <button onClick={() => setIsMediaModalOpen(true)} className="group relative p-1.5 hover:bg-gray-200 dark:hover:bg-[#3A3B3C] rounded-full transition-colors">
+              <button onClick={() => setIsMediaModalOpen(true)} className="group relative p-1.5 hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:scale-90 active:bg-gray-200 dark:active:bg-[#3A3B3C] rounded-full transition-all duration-150 select-none">
                 <svg className="w-6 h-6 text-[#45BD62]" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" /></svg>
                 <span className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black/80 text-white text-xs px-2.5 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
                   {t("feed.addPhoto")}
@@ -866,7 +866,7 @@ export default function CreatePostModal({ isOpen, onClose, currentUser, onSucces
               </button>
 
               {/* Tag People */}
-              <button onClick={() => setIsTagModalOpen(true)} className="group relative p-1.5 hover:bg-gray-200 dark:hover:bg-[#3A3B3C] rounded-full transition-colors">
+              <button onClick={() => setIsTagModalOpen(true)} className="group relative p-1.5 hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:scale-90 active:bg-gray-200 dark:active:bg-[#3A3B3C] rounded-full transition-all duration-150 select-none">
                 <svg className="w-6 h-6 text-[#1877F2]" fill="currentColor" viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" /></svg>
                 <span className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black/80 text-white text-xs px-2.5 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
                   {t("feed.tagPeople")}
@@ -879,7 +879,7 @@ export default function CreatePostModal({ isOpen, onClose, currentUser, onSucces
                 type="button"
                 onClick={() => !initialPost && setIsGiveawayModalOpen(true)}
                 disabled={!!initialPost}
-                className={`group relative p-1.5 rounded-full transition-colors ${giveawayDraft ? "bg-amber-100 dark:bg-amber-500/20" : "hover:bg-gray-200 dark:hover:bg-[#3A3B3C]"} ${initialPost ? "opacity-50 cursor-not-allowed" : ""}`}
+                className={`group relative p-1.5 rounded-full transition-all duration-150 active:scale-90 select-none ${giveawayDraft ? "bg-amber-100 dark:bg-amber-500/20" : "hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:bg-gray-200 dark:active:bg-[#3A3B3C]"} ${initialPost ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <img src="/navigasi/giveaway.svg" alt="Giveaway" className="w-6 h-6 object-contain" />
                 <span className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black/80 text-white text-xs px-2.5 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
@@ -892,10 +892,10 @@ export default function CreatePostModal({ isOpen, onClose, currentUser, onSucces
                 <button
                   ref={moreBtnRef}
                   onClick={() => setIsMorePopupOpen(prev => !prev)}
-                  className={`group relative p-1.5 rounded-full transition-colors ${
+                  className={`group relative p-1.5 rounded-full transition-all duration-150 active:scale-90 select-none ${
                     isMorePopupOpen
                       ? "bg-gray-200 dark:bg-[#3A3B3C]"
-                      : "hover:bg-gray-200 dark:hover:bg-[#3A3B3C]"
+                      : "hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:bg-gray-200 dark:active:bg-[#3A3B3C]"
                   }`}
                 >
                   <svg className="w-6 h-6 text-gray-500 dark:text-[#B0B3B8]" fill="currentColor" viewBox="0 0 24 24">
@@ -920,7 +920,7 @@ export default function CreatePostModal({ isOpen, onClose, currentUser, onSucces
                       </div>
                       <span className="text-[14px] font-semibold text-black dark:text-[#E4E6EB]">{t("feed.product") || "Produk"}</span>
                     </button>
-                                        {/* Project */}
+                    {/* Project */}
                     <button onClick={() => {
                       setIsProjectModalOpen(true);
                       setIsMorePopupOpen(false);
@@ -931,7 +931,7 @@ export default function CreatePostModal({ isOpen, onClose, currentUser, onSucces
                           setIsLoadingProjects(false);
                         });
                       }
-                    }} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-100 dark:hover:bg-[#4E4F50] transition-colors cursor-pointer">
+                    }} className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-gray-100 dark:hover:bg-[#4E4F50] active:scale-[0.98] transition-all duration-150 cursor-pointer select-none">
                       <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center shrink-0">
                         <div className="w-5 h-5 bg-purple-500" style={{ WebkitMask: "url(/navigasi/project.svg) center/contain no-repeat", mask: "url(/navigasi/project.svg) center/contain no-repeat" }} />
                       </div>
@@ -954,7 +954,7 @@ export default function CreatePostModal({ isOpen, onClose, currentUser, onSucces
           <button 
             onClick={handlePost}
             disabled={(!postContent.trim() && mediaPreviewList.length === 0 && !giveawayDraft) || isPosting}
-            className="w-full bg-[#1877F2] hover:bg-blue-600 disabled:bg-gray-200 disabled:dark:bg-[#4E4F50] text-white disabled:text-gray-400 disabled:dark:text-gray-500 font-semibold py-2 rounded-lg transition-colors flex justify-center items-center gap-2"
+            className="w-full bg-[#1877F2] hover:bg-blue-600 active:scale-[0.98] active:bg-blue-700 disabled:active:scale-100 disabled:bg-gray-200 disabled:dark:bg-[#4E4F50] text-white disabled:text-gray-400 disabled:dark:text-gray-500 font-semibold py-2 rounded-lg transition-all duration-150 flex justify-center items-center gap-2 select-none"
           >
             {isPosting ? (
               <>

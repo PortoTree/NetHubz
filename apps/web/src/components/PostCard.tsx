@@ -18,6 +18,7 @@ import SaveToFolderModal from "./SaveToFolderModal";
 import { useMiniProfile } from "@/contexts/MiniProfileContext";
 import { useShareModal } from "@/contexts/ShareContext";
 import { getProfileUrl } from "@/utils/profileActions";
+import { interactionsCache } from "@/utils/cache";
 
 export function formatPostTime(timestamp: number | Date, t: any, locale: string) {
   const ts = new Date(timestamp).getTime();
@@ -72,14 +73,77 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
   const [isTagListModalOpen, setIsTagListModalOpen] = useState(false);
   const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
 
-  const [isLiked, setIsLiked] = useState<ReactionType | null>(post.myReaction || null);
-  const [likeCount, setLikeCount] = useState(post._count?.likes || 0);
-  const [topReactions, setTopReactions] = useState<ReactionType[]>(post.topReactions || []);
+  const activeUserId = currentUser?.id;
+  const cacheKey = activeUserId ? `interaction_post_${post.id}_${activeUserId}` : null;
+
+  const [isLiked, setIsLiked] = useState<ReactionType | null>(() => {
+    if (cacheKey && interactionsCache.has(cacheKey)) {
+      return interactionsCache.get(cacheKey).myReaction ?? null;
+    }
+    return post.myReaction || null;
+  });
+  const [likeCount, setLikeCount] = useState<number>(() => {
+    if (cacheKey && interactionsCache.has(cacheKey)) {
+      return interactionsCache.get(cacheKey).likeCount ?? post._count?.likes ?? 0;
+    }
+    return post._count?.likes || 0;
+  });
+  const [topReactions, setTopReactions] = useState<ReactionType[]>(() => {
+    if (cacheKey && interactionsCache.has(cacheKey)) {
+      return interactionsCache.get(cacheKey).topReactions ?? post.topReactions ?? [];
+    }
+    return post.topReactions || [];
+  });
   const [isLikeLoading, setIsLikeLoading] = useState(false);
 
-  const [isSaved, setIsSaved] = useState(post.hasSaved || false);
+  const [isSaved, setIsSaved] = useState<boolean>(() => {
+    if (cacheKey && interactionsCache.has(cacheKey)) {
+      return interactionsCache.get(cacheKey).hasSaved ?? post.hasSaved ?? false;
+    }
+    return post.hasSaved || false;
+  });
   const [isSaveLoading, setIsSaveLoading] = useState(false);
   const [shareCount, setShareCount] = useState(post._count?.shares || 0);
+  const [commentCount, setCommentCount] = useState<number>(() => {
+    if (cacheKey && interactionsCache.has(cacheKey)) {
+      return interactionsCache.get(cacheKey).commentCount ?? post._count?.comments ?? 0;
+    }
+    return post._count?.comments || 0;
+  });
+
+  // Sync with interactionsCache and cross-component broadcast events (SWR Pattern)
+  useEffect(() => {
+    if (!cacheKey) return;
+    if (!interactionsCache.has(cacheKey)) {
+      interactionsCache.set(cacheKey, {
+        myReaction: post.myReaction || null,
+        likeCount: post._count?.likes || 0,
+        commentCount: post._count?.comments || 0,
+        topReactions: post.topReactions || [],
+        hasSaved: post.hasSaved || false,
+      });
+    } else {
+      const cached = interactionsCache.get(cacheKey);
+      if (cached.myReaction !== undefined) setIsLiked(cached.myReaction);
+      if (cached.likeCount !== undefined) setLikeCount(cached.likeCount);
+      if (cached.commentCount !== undefined) setCommentCount(cached.commentCount);
+      if (cached.topReactions !== undefined) setTopReactions(cached.topReactions);
+      if (cached.hasSaved !== undefined) setIsSaved(cached.hasSaved);
+    }
+
+    const handleSync = (e: any) => {
+      if (e.detail?.postId === post.id) {
+        if (e.detail.myReaction !== undefined) setIsLiked(e.detail.myReaction);
+        if (e.detail.likeCount !== undefined) setLikeCount(e.detail.likeCount);
+        if (e.detail.commentCount !== undefined) setCommentCount(e.detail.commentCount);
+        if (e.detail.topReactions !== undefined) setTopReactions(e.detail.topReactions);
+        if (e.detail.hasSaved !== undefined) setIsSaved(e.detail.hasSaved);
+      }
+    };
+
+    window.addEventListener("post_interaction_updated", handleSync);
+    return () => window.removeEventListener("post_interaction_updated", handleSync);
+  }, [post.id, cacheKey]);
 
   const handleLike = async (reactionType: ReactionType = "LIKE") => {
     if (!currentUser || isLikeLoading) return;
@@ -91,12 +155,38 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
     const isRemovingLike = prevReaction && isSameReaction;
     const isAddingLike = !prevReaction;
 
+    const nextReaction: ReactionType | null = isRemovingLike ? null : reactionType;
+    const nextLikeCount: number = isRemovingLike ? Math.max(0, likeCount - 1) : (isAddingLike ? likeCount + 1 : likeCount);
+    let nextTopReactions: ReactionType[] = topReactions;
     if (isRemovingLike) {
-      setIsLiked(null);
-      setLikeCount((prev: number) => Math.max(0, prev - 1));
+      nextTopReactions = topReactions.filter(r => r !== reactionType);
     } else {
-      setIsLiked(reactionType);
-      if (isAddingLike) setLikeCount((prev: number) => prev + 1);
+      nextTopReactions = [reactionType, ...topReactions.filter(r => r !== reactionType)];
+    }
+
+    setIsLiked(nextReaction);
+    setLikeCount(nextLikeCount);
+    setTopReactions(nextTopReactions);
+
+    if (cacheKey) {
+      interactionsCache.set(cacheKey, {
+        myReaction: nextReaction,
+        likeCount: nextLikeCount,
+        topReactions: nextTopReactions,
+        hasSaved: isSaved,
+      });
+    }
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("post_interaction_updated", {
+        detail: {
+          postId: post.id,
+          myReaction: nextReaction,
+          likeCount: nextLikeCount,
+          topReactions: nextTopReactions,
+          hasSaved: isSaved,
+        }
+      }));
     }
 
     try {
@@ -104,21 +194,52 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
       if (!res.success) {
         // Revert on error
         setIsLiked(prevReaction);
-        if (isRemovingLike) setLikeCount((prev: number) => prev + 1);
-        if (isAddingLike) setLikeCount((prev: number) => Math.max(0, prev - 1));
-        console.error(res.error);
-      } else {
-        if (res.action === "updated" || res.action === "liked" || isAddingLike) {
-           setTopReactions((prev: ReactionType[]) => {
-             const newTop = [reactionType, ...prev.filter((r: ReactionType) => r !== reactionType)];
-             return newTop;
-           });
+        setLikeCount(likeCount);
+        setTopReactions(topReactions);
+        if (cacheKey) {
+          interactionsCache.set(cacheKey, {
+            myReaction: prevReaction,
+            likeCount: likeCount,
+            topReactions: topReactions,
+            hasSaved: isSaved,
+          });
         }
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("post_interaction_updated", {
+            detail: {
+              postId: post.id,
+              myReaction: prevReaction,
+              likeCount: likeCount,
+              topReactions: topReactions,
+              hasSaved: isSaved,
+            }
+          }));
+        }
+        console.error(res.error);
       }
     } catch (error) {
       setIsLiked(prevReaction);
-      if (isRemovingLike) setLikeCount((prev: number) => prev + 1);
-      if (isAddingLike) setLikeCount((prev: number) => Math.max(0, prev - 1));
+      setLikeCount(likeCount);
+      setTopReactions(topReactions);
+      if (cacheKey) {
+        interactionsCache.set(cacheKey, {
+          myReaction: prevReaction,
+          likeCount: likeCount,
+          topReactions: topReactions,
+          hasSaved: isSaved,
+        });
+      }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("post_interaction_updated", {
+          detail: {
+            postId: post.id,
+            myReaction: prevReaction,
+            likeCount: likeCount,
+            topReactions: topReactions,
+            hasSaved: isSaved,
+          }
+        }));
+      }
       console.error(error);
     } finally {
       setIsLikeLoading(false);
@@ -131,10 +252,35 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
     setIsSaved(newIsSaved);
     setIsSaveLoading(true);
 
+    if (cacheKey) {
+      const existing = interactionsCache.get(cacheKey) || {};
+      interactionsCache.set(cacheKey, {
+        ...existing,
+        hasSaved: newIsSaved,
+      });
+    }
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("post_interaction_updated", {
+        detail: {
+          postId: post.id,
+          hasSaved: newIsSaved,
+        }
+      }));
+    }
+
     const res = await toggleSave(currentUser.id, "post", post.id);
     if (!res.success) {
       // Revert on failure
       setIsSaved(!newIsSaved);
+      if (cacheKey) {
+        const existing = interactionsCache.get(cacheKey) || {};
+        interactionsCache.set(cacheKey, { ...existing, hasSaved: !newIsSaved });
+      }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("post_interaction_updated", {
+          detail: { postId: post.id, hasSaved: !newIsSaved }
+        }));
+      }
       console.error(res.error);
     } else if (res.action === "saved") {
       const savedMsg = t("saveFolderModal.savedToast");
@@ -182,9 +328,10 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
   useEffect(() => {
     setIsLiked(post.myReaction || null);
     setLikeCount(post._count?.likes || 0);
+    setCommentCount(post._count?.comments || 0);
     setIsSaved(post.hasSaved || false);
     if (post.topReactions) setTopReactions(post.topReactions);
-  }, [post.myReaction, post._count?.likes, post.hasSaved, post.topReactions]);
+  }, [post.myReaction, post._count?.likes, post._count?.comments, post.hasSaved, post.topReactions]);
 
   useEffect(() => {
     if (isDeleteModalOpen || isMediaModalOpen || isTagListModalOpen || isEditModalOpen) {
@@ -348,7 +495,7 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
       )}
       <div className="flex items-center justify-between pb-2 px-4 relative">
         <div
-          className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+          className="flex items-center gap-3 cursor-pointer hover:opacity-80 active:scale-95 transition-all duration-150 select-none"
           onClick={(e) => {
             handleUserClick(post.author, e);
           }}
@@ -390,7 +537,7 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
           <div className="relative">
           <button
             onClick={() => setActivePostMenu(!activePostMenu)}
-            className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-200 dark:hover:bg-[#3A3B3C] text-gray-500 dark:text-[#B0B3B8] transition-colors"
+            className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:scale-90 active:bg-gray-300 dark:active:bg-[#4E4F50] text-gray-500 dark:text-[#B0B3B8] transition-all duration-150 select-none"
           >
             <svg
               className="w-5 h-5"
@@ -409,7 +556,7 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
               <div className="absolute right-0 mt-1 w-[260px] bg-white dark:bg-[#242526] rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.15)] border border-gray-200 dark:border-[#3E4042] p-2 z-[10200]">
                 <button 
                   onClick={() => { handleSave(); setActivePostMenu(false); }}
-                  className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] transition-colors text-left text-black dark:text-[#E4E6EB] font-semibold text-[15px]"
+                  className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:scale-[0.98] active:bg-gray-200 dark:active:bg-[#3A3B3C] transition-all text-left text-black dark:text-[#E4E6EB] font-semibold text-[15px] select-none"
                 >
                   <svg className={`w-6 h-6 ${isSaved ? 'text-orange-500' : 'text-gray-600 dark:text-[#B0B3B8]'}`} fill={isSaved ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={isSaved ? 0 : 2} d={isSaved ? "M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" : "M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"} />
@@ -424,7 +571,7 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
                     const id = post.author?.id || post.authorId || username;
                     router.push(getProfileUrl(username, id, locale));
                   }}
-                  className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] transition-colors text-left text-black dark:text-[#E4E6EB] font-semibold text-[15px]"
+                  className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:scale-[0.98] active:bg-gray-200 dark:active:bg-[#3A3B3C] transition-all text-left text-black dark:text-[#E4E6EB] font-semibold text-[15px] select-none"
                 >
                   <svg className="w-6 h-6 text-gray-600 dark:text-[#B0B3B8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -434,13 +581,13 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
                 
                 {post.authorId === currentUser?.id && (
                   <>
-                    <button onClick={() => { setIsEditModalOpen(true); setActivePostMenu(false); }} className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] transition-colors text-left text-black dark:text-[#E4E6EB] font-semibold text-[15px]">
+                    <button onClick={() => { setIsEditModalOpen(true); setActivePostMenu(false); }} className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:scale-[0.98] active:bg-gray-200 dark:active:bg-[#3A3B3C] transition-all text-left text-black dark:text-[#E4E6EB] font-semibold text-[15px] select-none">
                       <svg className="w-6 h-6 text-gray-600 dark:text-[#B0B3B8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                       </svg>
                       {t("postMenu.editPost") || "Edit Postingan"}
                     </button>
-                    <button onClick={() => { setIsDeleteModalOpen(true); setActivePostMenu(false); }} disabled={isDeleting} className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] transition-colors text-left text-red-500 font-semibold text-[15px]">
+                    <button onClick={() => { setIsDeleteModalOpen(true); setActivePostMenu(false); }} disabled={isDeleting} className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:scale-[0.98] active:bg-red-50 dark:active:bg-red-950/20 transition-all text-left text-red-500 font-semibold text-[15px] select-none">
                       <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
@@ -452,7 +599,7 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
                 {post.authorId !== currentUser?.id && (
                   <>
                     <div className="h-[1px] bg-gray-200 dark:bg-[#3E4042] my-1 mx-2" />
-                    <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] transition-colors text-left text-red-500 font-semibold text-[15px]">
+                    <button className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:scale-[0.98] active:bg-red-50 dark:active:bg-red-950/20 transition-all text-left text-red-500 font-semibold text-[15px] select-none">
                       <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                       </svg>
@@ -475,7 +622,7 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
         {!isContentExpanded && post.content?.length > 185 && (
           <button 
             onClick={(e) => { e.stopPropagation(); setIsContentExpanded(true); }}
-            className="text-gray-500 dark:text-[#B0B3B8] font-semibold underline ml-1 inline-block"
+            className="text-gray-500 dark:text-[#B0B3B8] font-semibold underline ml-1 inline-block active:scale-95 transition-transform duration-150 select-none"
           >
             {t("common.seeMore") || "Lihat Selengkapnya"}
           </button>
@@ -483,7 +630,7 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
         {isContentExpanded && post.content?.length > 185 && (
           <button 
             onClick={(e) => { e.stopPropagation(); setIsContentExpanded(false); }}
-            className="text-gray-500 dark:text-[#B0B3B8] font-semibold underline ml-1 inline-block"
+            className="text-gray-500 dark:text-[#B0B3B8] font-semibold underline ml-1 inline-block active:scale-95 transition-transform duration-150 select-none"
           >
             {t("common.seeLess") || "Lebih Sedikit"}
           </button>
@@ -750,14 +897,14 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
                 } }}>{likeCount}</span>}
         </div>
         <div className="flex items-center gap-3">
-          {post._count?.comments > 0 && (
+          {commentCount > 0 && (
             <span className="cursor-pointer hover:underline" onClick={() => { if (!disableClicks) {
                   (window as any).__NethubzPrefetchedPost = post;
                   const searchParams = new URLSearchParams(window.location.search);
                   searchParams.set('postId', post.id);
                   router.push(`${window.location.pathname}?${searchParams.toString()}`, { scroll: false });
                 } }}>
-              {post._count.comments} {t("feed.comment") || "Komentar"}
+              {commentCount} {t("feed.comment") || "Komentar"}
             </span>
           )}
         </div>
@@ -777,7 +924,7 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
                   searchParams.set('postId', post.id);
                   router.push(`${window.location.pathname}?${searchParams.toString()}`, { scroll: false });
                 } }}
-            className="flex-none sm:flex-1 flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-0 py-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] text-[15px] font-semibold text-[#65676B] dark:text-[#B0B3B8] transition-colors bg-transparent"
+            className="flex-none sm:flex-1 flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-0 py-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:scale-95 active:bg-gray-200/60 dark:active:bg-[#3A3B3C] text-[15px] font-semibold text-[#65676B] dark:text-[#B0B3B8] transition-all duration-150 bg-transparent select-none"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
@@ -786,7 +933,7 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
           </button>
           <button 
             onClick={handleShare}
-            className="flex-none sm:flex-1 flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-0 py-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] text-[15px] font-semibold text-[#65676B] dark:text-[#B0B3B8] transition-colors bg-transparent"
+            className="flex-none sm:flex-1 flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-0 py-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:scale-95 active:bg-gray-200/60 dark:active:bg-[#3A3B3C] text-[15px] font-semibold text-[#65676B] dark:text-[#B0B3B8] transition-all duration-150 bg-transparent select-none"
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
               <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
@@ -805,7 +952,7 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
               <h2 className="text-[20px] font-bold text-black dark:text-[#E4E6EB]">
                 {t("postMenu.deletePost") || "Hapus Postingan"}
               </h2>
-              <button onClick={() => setIsDeleteModalOpen(false)} className="w-9 h-9 bg-gray-200 dark:bg-[#3A3B3C] rounded-full flex items-center justify-center hover:bg-gray-300 dark:hover:bg-[#4E4F50] transition-colors text-gray-600 dark:text-[#B0B3B8]">
+              <button onClick={() => setIsDeleteModalOpen(false)} className="w-9 h-9 bg-gray-200 dark:bg-[#3A3B3C] rounded-full flex items-center justify-center hover:bg-gray-300 dark:hover:bg-[#4E4F50] active:scale-90 active:bg-gray-300 dark:active:bg-[#4E4F50] transition-all duration-150 text-gray-600 dark:text-[#B0B3B8] select-none">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
@@ -814,10 +961,10 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
                 {t("postMenu.confirmDelete") || "Apakah Anda yakin ingin menghapus postingan ini?"}
               </p>
               <div className="flex justify-end gap-3">
-                <button onClick={() => setIsDeleteModalOpen(false)} className="px-5 py-2 rounded-lg font-semibold text-gray-700 dark:text-[#E4E6EB] hover:bg-gray-200 dark:hover:bg-[#3A3B3C] transition-colors">
+                <button onClick={() => setIsDeleteModalOpen(false)} className="px-5 py-2 rounded-lg font-semibold text-gray-700 dark:text-[#E4E6EB] hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:scale-95 active:bg-gray-300 dark:active:bg-[#4E4F50] transition-all duration-150 select-none">
                   {t("postMenu.cancel") || "Batal"}
                 </button>
-                <button onClick={handleDelete} disabled={isDeleting} className="px-5 py-2 rounded-lg font-semibold text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 transition-colors flex items-center gap-2">
+                <button onClick={handleDelete} disabled={isDeleting} className="px-5 py-2 rounded-lg font-semibold text-white bg-red-500 hover:bg-red-600 active:scale-95 active:bg-red-700 disabled:opacity-50 transition-all duration-150 flex items-center gap-2 select-none">
                   {isDeleting ? (t("postMenu.deleting") || "Menghapus...") : (t("postMenu.delete") || "Hapus")}
                 </button>
               </div>

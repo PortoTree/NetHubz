@@ -75,7 +75,7 @@ export default function FloatingUserMenuMobile({
         {/* Compact Profile Card Header */}
         <div className="relative mb-1.5">
           <div
-            className="flex items-center justify-between p-1.5 rounded-lg bg-gray-100 dark:bg-[#3A3B3C] cursor-pointer hover:bg-gray-200 dark:hover:bg-[#4E4F50] transition-colors"
+            className="flex items-center justify-between p-1.5 rounded-lg bg-gray-100 dark:bg-[#3A3B3C] cursor-pointer hover:bg-gray-200 dark:hover:bg-[#4E4F50] active:scale-[0.98] active:bg-gray-200 dark:active:bg-[#4E4F50] transition-all duration-150 select-none"
             onClick={(e) => {
               e.stopPropagation();
               setIsAccountSwitcherOpen(!isAccountSwitcherOpen);
@@ -168,7 +168,7 @@ export default function FloatingUserMenuMobile({
               {/* Tambah Akun Button */}
               <button
                 type="button"
-                className="w-full flex items-center gap-2.5 px-3 py-1.5 hover:bg-gray-100 dark:hover:bg-[#3A3B3C] text-left transition-colors cursor-pointer"
+                className="w-full flex items-center gap-2.5 px-3 py-1.5 hover:bg-gray-100 dark:hover:bg-[#3A3B3C] active:scale-[0.98] active:bg-gray-200 dark:active:bg-[#3A3B3C] text-left transition-all duration-150 cursor-pointer select-none"
                 onClick={() => {
                   setIsAccountSwitcherOpen(false);
                 }}
@@ -202,7 +202,7 @@ export default function FloatingUserMenuMobile({
         <div className="space-y-0.5">
           <button
             type="button"
-            className="w-full flex items-center justify-between p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] transition-colors group/item cursor-pointer"
+            className="w-full flex items-center justify-between p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:scale-[0.98] active:bg-gray-200 dark:active:bg-[#3A3B3C] transition-all duration-150 group/item cursor-pointer select-none"
           >
             <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-full bg-[#E4E6EB] dark:bg-[#3A3B3C] flex items-center justify-center shrink-0 overflow-hidden">
@@ -237,7 +237,7 @@ export default function FloatingUserMenuMobile({
 
           <button
             type="button"
-            className="w-full flex items-center justify-between p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] transition-colors group/item cursor-pointer"
+            className="w-full flex items-center justify-between p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:scale-[0.98] active:bg-gray-200 dark:active:bg-[#3A3B3C] transition-all duration-150 group/item cursor-pointer select-none"
           >
             <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-full bg-[#E4E6EB] dark:bg-[#3A3B3C] flex items-center justify-center shrink-0 overflow-hidden">
@@ -272,7 +272,7 @@ export default function FloatingUserMenuMobile({
 
           <button
             type="button"
-            className="w-full flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] transition-colors cursor-pointer"
+            className="w-full flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:scale-[0.98] active:bg-gray-200 dark:active:bg-[#3A3B3C] transition-all duration-150 cursor-pointer select-none"
           >
             <div className="w-7 h-7 rounded-full bg-[#E4E6EB] dark:bg-[#3A3B3C] flex items-center justify-center shrink-0 overflow-hidden">
               <svg
@@ -295,7 +295,7 @@ export default function FloatingUserMenuMobile({
           <button
             type="button"
             onClick={() => setIsDarkMode(!isDarkMode)}
-            className="w-full flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] transition-colors cursor-pointer"
+            className="w-full flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:scale-[0.98] active:bg-gray-200 dark:active:bg-[#3A3B3C] transition-all duration-150 cursor-pointer select-none"
           >
             <div className="w-7 h-7 rounded-full bg-[#E4E6EB] dark:bg-[#3A3B3C] flex items-center justify-center shrink-0 overflow-hidden">
               {isDarkMode ? (
@@ -310,7 +310,7 @@ export default function FloatingUserMenuMobile({
                 <svg
                   className="w-[15px] h-[15px] text-black dark:text-[#E4E6EB]"
                   fill="currentColor"
-                  viewBox="0 0 24 24"
+                  viewBox="0 24 24"
                 >
                   <path
                     fillRule="evenodd"
@@ -328,7 +328,7 @@ export default function FloatingUserMenuMobile({
           <button
             type="button"
             onClick={handleLogout}
-            className="w-full flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] text-red-600 dark:text-red-400 transition-colors cursor-pointer group/logout"
+            className="w-full flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:scale-[0.98] active:bg-red-50 dark:active:bg-red-950/20 text-red-600 dark:text-red-400 transition-all duration-150 cursor-pointer group/logout select-none"
           >
             <div className="w-7 h-7 rounded-full bg-red-50 dark:bg-red-950/30 flex items-center justify-center shrink-0 overflow-hidden">
               <svg

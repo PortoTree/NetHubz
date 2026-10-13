@@ -5,6 +5,7 @@ import { getFeedPosts, getPostById } from "@/app/actions/posts";
 import PostCard from "./PostCard";
 import { useTranslations } from "next-intl";
 import { useSearchParams } from "next/navigation";
+import { interactionsCache } from "@/utils/cache";
 
 interface PostFeedProps {
   currentUser: any;
@@ -46,11 +47,35 @@ const activeRequests = new Map<string, Promise<any>>();
       let loadedPosts = res.posts || [];
 
       if (res.success && loadedPosts) {
+        // SWR Category 4: Preserve client-cached private interactions
+        const activeUserId = currentUser?.id;
+        const mergedPosts = activeUserId
+          ? loadedPosts.map((p: any) => {
+              const postCacheKey = `interaction_post_${p.id}_${activeUserId}`;
+              if (interactionsCache.has(postCacheKey)) {
+                const cached = interactionsCache.get(postCacheKey);
+                return {
+                  ...p,
+                  myReaction: cached.myReaction !== undefined ? cached.myReaction : p.myReaction,
+                  hasLiked: cached.myReaction ? true : false,
+                  _count: {
+                    ...p._count,
+                    likes: cached.likeCount !== undefined ? cached.likeCount : p._count?.likes,
+                    comments: cached.commentCount !== undefined ? cached.commentCount : p._count?.comments,
+                  },
+                  topReactions: cached.topReactions !== undefined ? cached.topReactions : p.topReactions,
+                  hasSaved: cached.hasSaved !== undefined ? cached.hasSaved : p.hasSaved,
+                };
+              }
+              return p;
+            })
+          : loadedPosts;
+
         setNextCursor(res.nextCursor);
-        setPosts(prev => cursor ? [...prev, ...loadedPosts] : loadedPosts);
+        setPosts(prev => cursor ? [...prev, ...mergedPosts] : mergedPosts);
         if (!cursor) {
           (window as any).__POST_FEED_CACHE = (window as any).__POST_FEED_CACHE || {};
-          (window as any).__POST_FEED_CACHE[cacheKey] = { posts: loadedPosts, nextCursor: res.nextCursor };
+          (window as any).__POST_FEED_CACHE[cacheKey] = { posts: mergedPosts, nextCursor: res.nextCursor };
         }
       } else {
         if (!isBackground) setError(res.error || t("feed.failedToLoadPosts"));
@@ -81,6 +106,34 @@ const activeRequests = new Map<string, Promise<any>>();
     const handleRefresh = () => fetchPosts();
     const handleSilentRefresh = () => fetchPosts(true);
     
+    const handlePostInteractionUpdated = (e: any) => {
+      const { postId, myReaction, likeCount, commentCount, topReactions, hasSaved } = e.detail || {};
+      setPosts(prev => {
+        const newPosts = prev.map(p => {
+          if (p.id === postId) {
+            return {
+              ...p,
+              ...(myReaction !== undefined ? { myReaction, hasLiked: !!myReaction } : {}),
+              ...(likeCount !== undefined || commentCount !== undefined ? {
+                _count: {
+                  ...p._count,
+                  ...(likeCount !== undefined ? { likes: likeCount } : {}),
+                  ...(commentCount !== undefined ? { comments: commentCount } : {}),
+                }
+              } : {}),
+              ...(topReactions !== undefined ? { topReactions } : {}),
+              ...(hasSaved !== undefined ? { hasSaved } : {}),
+            };
+          }
+          return p;
+        });
+        (window as any).__POST_FEED_CACHE = (window as any).__POST_FEED_CACHE || {};
+        const oldCache = (window as any).__POST_FEED_CACHE[cacheKey] || {};
+        (window as any).__POST_FEED_CACHE[cacheKey] = { ...oldCache, posts: newPosts };
+        return newPosts;
+      });
+    };
+
     const handleMediaRemoved = (e: any) => {
       const { postId, mediaId, originalUrl } = e.detail;
       setPosts(prev => {
@@ -115,11 +168,13 @@ const activeRequests = new Map<string, Promise<any>>();
 
     window.addEventListener("refresh_feed", handleRefresh);
     window.addEventListener("silent_refresh_feed", handleSilentRefresh);
+    window.addEventListener("post_interaction_updated", handlePostInteractionUpdated);
     window.addEventListener("post_media_removed", handleMediaRemoved);
     window.addEventListener("gallery_deleted", handleGalleryDeleted);
     return () => {
       window.removeEventListener("refresh_feed", handleRefresh);
       window.removeEventListener("silent_refresh_feed", handleSilentRefresh);
+      window.removeEventListener("post_interaction_updated", handlePostInteractionUpdated);
       window.removeEventListener("post_media_removed", handleMediaRemoved);
       window.removeEventListener("gallery_deleted", handleGalleryDeleted);
     };

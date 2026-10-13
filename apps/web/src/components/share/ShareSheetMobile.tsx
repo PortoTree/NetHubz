@@ -225,7 +225,7 @@ export default function ShareSheetMobile({
             <button
               onClick={handleDismiss}
               aria-label={t("close")}
-              className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#3A3B3C] text-gray-600 dark:text-[#E4E6EB] flex items-center justify-center transition-colors"
+              className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#3A3B3C] text-gray-600 dark:text-[#E4E6EB] flex items-center justify-center active:scale-90 active:bg-gray-200 dark:active:bg-[#4E4F50] transition-all duration-150 select-none"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -325,17 +325,17 @@ export default function ShareSheetMobile({
                         key={friend.id}
                         onClick={() => handleSendToFriend(friend)}
                         disabled={isSent}
-                        className={`group flex flex-col items-center text-center p-1.5 rounded-xl transition-all cursor-pointer ${
+                        className={`group flex flex-col items-center text-center p-1.5 rounded-xl transition-all duration-150 cursor-pointer select-none ${
                           isSent
                             ? "opacity-90 cursor-default"
-                            : "hover:bg-gray-100 dark:hover:bg-[#3A3B3C]/50 active:scale-95"
+                            : "hover:bg-gray-100 dark:hover:bg-[#3A3B3C]/50 active:scale-90 active:bg-gray-200/60 dark:active:bg-[#3A3B3C]"
                         }`}
                       >
                         <div className="relative mb-1">
                           <img
                             src={fAvatar}
                             alt={friend.displayName}
-                            className={`w-12 h-12 rounded-full object-cover transition-all ${
+                            className={`w-12 h-12 rounded-full object-cover transition-all duration-150 ${
                               isSent
                                 ? "ring-2 ring-emerald-500 scale-95"
                                 : "ring-1 ring-gray-200 dark:ring-gray-700 active:ring-blue-500"
@@ -365,7 +365,7 @@ export default function ShareSheetMobile({
           <div className="pt-1 border-t border-gray-200 dark:border-[#3E4042]">
             <button
               onClick={handlePlatformShare}
-              className="w-full flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl bg-gradient-to-r from-purple-600 via-teal-500 to-emerald-400 active:from-purple-700 active:via-teal-600 active:to-emerald-500 text-white font-semibold text-[14px] shadow-sm active:scale-[0.98] transition-all cursor-pointer"
+              className="w-full flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl bg-gradient-to-r from-purple-600 via-teal-500 to-emerald-400 active:from-purple-700 active:via-teal-600 active:to-emerald-500 text-white font-semibold text-[14px] shadow-sm active:scale-95 transition-all duration-150 cursor-pointer select-none"
             >
               <svg className="w-5 h-5 fill-none stroke-current shrink-0" viewBox="0 0 24 24">
                 <path

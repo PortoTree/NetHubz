@@ -21,7 +21,7 @@ import { ReactionButton, ReactionType, REACTION_CONFIG } from "./ReactionButton"
 import Image from "next/image";
 import { ReactionSummaryPopup } from "./ReactionSummaryPopup";
 
-import { commentsCache } from "@/utils/cache";
+import { commentsCache, interactionsCache } from "@/utils/cache";
 import { useMiniProfile } from "@/contexts/MiniProfileContext";
 
 interface PostDetailModalProps {
@@ -702,8 +702,49 @@ export default function PostDetailModal({ isOpen, onClose, post, currentUser, ta
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | undefined>(undefined);
 
-  const [isLiked, setIsLiked] = useState(post.hasLiked || false);
-  const [likeCount, setLikeCount] = useState(post._count?.likes || 0);
+  const postCacheKey = currentUser?.id ? `interaction_post_${post.id}_${currentUser.id}` : null;
+  const [isLiked, setIsLiked] = useState<boolean>(() => {
+    if (postCacheKey && interactionsCache.has(postCacheKey)) {
+      return !!interactionsCache.get(postCacheKey).myReaction;
+    }
+    return post.hasLiked || false;
+  });
+  const [likeCount, setLikeCount] = useState<number>(() => {
+    if (postCacheKey && interactionsCache.has(postCacheKey)) {
+      return interactionsCache.get(postCacheKey).likeCount ?? post._count?.likes ?? 0;
+    }
+    return post._count?.likes || 0;
+  });
+  const [commentCount, setCommentCount] = useState<number>(() => {
+    if (postCacheKey && interactionsCache.has(postCacheKey)) {
+      return interactionsCache.get(postCacheKey).commentCount ?? post._count?.comments ?? 0;
+    }
+    return post._count?.comments || 0;
+  });
+
+  useEffect(() => {
+    if (!isOpen || !post.id) return;
+    if (postCacheKey && interactionsCache.has(postCacheKey)) {
+      const cached = interactionsCache.get(postCacheKey);
+      setIsLiked(!!cached.myReaction);
+      if (cached.likeCount !== undefined) setLikeCount(cached.likeCount);
+      if (cached.commentCount !== undefined) setCommentCount(cached.commentCount);
+    } else {
+      setIsLiked(post.hasLiked || false);
+      setLikeCount(post._count?.likes || 0);
+      setCommentCount(post._count?.comments || 0);
+    }
+
+    const handleSync = (e: any) => {
+      if (e.detail?.postId === post.id) {
+        if (e.detail.myReaction !== undefined) setIsLiked(!!e.detail.myReaction);
+        if (e.detail.likeCount !== undefined) setLikeCount(e.detail.likeCount);
+        if (e.detail.commentCount !== undefined) setCommentCount(e.detail.commentCount);
+      }
+    };
+    window.addEventListener("post_interaction_updated", handleSync);
+    return () => window.removeEventListener("post_interaction_updated", handleSync);
+  }, [isOpen, post.id, postCacheKey, post.hasLiked, post._count?.likes, post._count?.comments]);
 
   const endOfCommentsRef = useRef<HTMLDivElement>(null);
   const emojiRef = useRef<HTMLDivElement>(null);
@@ -831,40 +872,95 @@ export default function PostDetailModal({ isOpen, onClose, post, currentUser, ta
   }, [isOpen, targetCommentId, comments]);
 
   const fetchComments = async (cursor?: string) => {
-    // If cache exists and this is an initial load (no cursor), use cache directly — no network call.
+    // SWR Pattern (Kategori 4 Client-Only): render instan 0 ms jika cache ada
     if (!cursor) {
       const cached = commentsCache.get(post.id);
       if (cached) {
         setComments(cached.comments);
         setNextCursor(cached.nextCursor);
         setIsLoadingComments(false);
-        return; // ← stop here, no fetch
-      }
-      setIsLoadingComments(true);
-    }
-    const res = await getComments("post", post.id, currentUser?.id, cursor, 20);
-    if (res.success) {
-      if (cursor) {
-        setComments(prev => {
-          const next = [...prev, ...(res.comments || [])];
-          commentsCache.set(post.id, { comments: next, nextCursor: res.nextCursor });
-          return next;
-        });
       } else {
-        commentsCache.set(post.id, { comments: res.comments || [], nextCursor: res.nextCursor });
-        setComments(res.comments || []);
+        setIsLoadingComments(true);
       }
-      setNextCursor(res.nextCursor);
     }
-    if (!cursor) setIsLoadingComments(false);
+
+    try {
+      const res = await getComments("post", post.id, currentUser?.id, cursor, 20);
+      if (res.success && res.comments) {
+        if (cursor) {
+          setComments(prev => {
+            const next = [...prev, ...(res.comments || [])];
+            commentsCache.set(post.id, { comments: next, nextCursor: res.nextCursor });
+            return next;
+          });
+        } else {
+          // Merge: pertahankan item yang sedang berstatus optimistik di lokal
+          setComments(prev => {
+            const optimisticItems = prev.filter(c => c.isOptimistic);
+            const serverIds = new Set(res.comments.map((c: any) => c.id));
+            const remainingOptimistic = optimisticItems.filter(c => !serverIds.has(c.id));
+            const merged = [...remainingOptimistic, ...res.comments];
+            commentsCache.set(post.id, { comments: merged, nextCursor: res.nextCursor });
+            return merged;
+          });
+        }
+        setNextCursor(res.nextCursor);
+      }
+    } catch (e) {
+      console.error("Error fetching comments:", e);
+    } finally {
+      if (!cursor) setIsLoadingComments(false);
+    }
   };
 
   const handleLike = async () => {
     if (!currentUser) return;
     const newLiked = !isLiked;
+    const newLikeCount = newLiked ? likeCount + 1 : Math.max(0, likeCount - 1);
     setIsLiked(newLiked);
-    setLikeCount((prev: number) => newLiked ? prev + 1 : Math.max(0, prev - 1));
-    await toggleLike(currentUser.id, "post", post.id);
+    setLikeCount(newLikeCount);
+
+    if (postCacheKey) {
+      const existing = interactionsCache.get(postCacheKey) || {};
+      interactionsCache.set(postCacheKey, {
+        ...existing,
+        myReaction: newLiked ? "LIKE" : null,
+        likeCount: newLikeCount,
+      });
+    }
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("post_interaction_updated", {
+        detail: {
+          postId: post.id,
+          myReaction: newLiked ? "LIKE" : null,
+          likeCount: newLikeCount,
+        }
+      }));
+    }
+
+    const res = await toggleLike(currentUser.id, "post", post.id);
+    if (!res?.success) {
+      setIsLiked(!newLiked);
+      setLikeCount(likeCount);
+      if (postCacheKey) {
+        const existing = interactionsCache.get(postCacheKey) || {};
+        interactionsCache.set(postCacheKey, {
+          ...existing,
+          myReaction: isLiked ? "LIKE" : null,
+          likeCount: likeCount,
+        });
+      }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("post_interaction_updated", {
+          detail: {
+            postId: post.id,
+            myReaction: isLiked ? "LIKE" : null,
+            likeCount: likeCount,
+          }
+        }));
+      }
+    }
   };
 
   const handleInlineSubmit = async (text: string, parentId: string, rootId?: string) => {
@@ -959,21 +1055,74 @@ export default function PostDetailModal({ isOpen, onClose, post, currentUser, ta
       });
     };
 
-    // 1. Instantly show reply in UI and close input box
-    setComments(prev => appendReply(prev, parentId, rootId).list);
+    // 1. Instantly show reply in UI and sync cache
+    setComments(prev => {
+      const updatedList = appendReply(prev, parentId, rootId).list;
+      const cached = commentsCache.get(post.id);
+      commentsCache.set(post.id, { comments: updatedList, nextCursor: cached?.nextCursor });
+      return updatedList;
+    });
     setReplyingTo(null);
+
+    // Update comment count
+    const nextCommentCount = commentCount + 1;
+    setCommentCount(nextCommentCount);
+    if (postCacheKey) {
+      const existing = interactionsCache.get(postCacheKey) || {};
+      interactionsCache.set(postCacheKey, { ...existing, commentCount: nextCommentCount });
+    }
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("post_interaction_updated", {
+        detail: { postId: post.id, commentCount: nextCommentCount }
+      }));
+    }
 
     // 2. Perform background request
     try {
       const res = await addComment(currentUser.id, "post", post.id, text, parentId);
       if (res.success && res.comment) {
-        setComments(prev => updateOrRemoveReply(prev, tempId, res.comment));
+        setComments(prev => {
+          const updated = updateOrRemoveReply(prev, tempId, res.comment);
+          const cached = commentsCache.get(post.id);
+          commentsCache.set(post.id, { comments: updated, nextCursor: cached?.nextCursor });
+          return updated;
+        });
       } else {
-        setComments(prev => updateOrRemoveReply(prev, tempId, null));
+        setComments(prev => {
+          const updated = updateOrRemoveReply(prev, tempId, null);
+          const cached = commentsCache.get(post.id);
+          commentsCache.set(post.id, { comments: updated, nextCursor: cached?.nextCursor });
+          return updated;
+        });
+        setCommentCount(commentCount);
+        if (postCacheKey) {
+          const existing = interactionsCache.get(postCacheKey) || {};
+          interactionsCache.set(postCacheKey, { ...existing, commentCount: commentCount });
+        }
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("post_interaction_updated", {
+            detail: { postId: post.id, commentCount: commentCount }
+          }));
+        }
       }
     } catch (err) {
       console.error("Error submitting inline reply:", err);
-      setComments(prev => updateOrRemoveReply(prev, tempId, null));
+      setComments(prev => {
+        const updated = updateOrRemoveReply(prev, tempId, null);
+        const cached = commentsCache.get(post.id);
+        commentsCache.set(post.id, { comments: updated, nextCursor: cached?.nextCursor });
+        return updated;
+      });
+      setCommentCount(commentCount);
+      if (postCacheKey) {
+        const existing = interactionsCache.get(postCacheKey) || {};
+        interactionsCache.set(postCacheKey, { ...existing, commentCount: commentCount });
+      }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("post_interaction_updated", {
+          detail: { postId: post.id, commentCount: commentCount }
+        }));
+      }
     }
   };
 
@@ -1003,10 +1152,28 @@ export default function PostDetailModal({ isOpen, onClose, post, currentUser, ta
       isOptimistic: true
     };
 
-    // 1. Instantly clear input & show comment in list
+    // 1. Instantly clear input & show comment in list + sync cache optimistically
     setCommentText("");
     if (editor) editor.commands.clearContent();
-    setComments(prev => [optimisticComment, ...prev]);
+    setComments(prev => {
+      const next = [optimisticComment, ...prev];
+      const cached = commentsCache.get(post.id);
+      commentsCache.set(post.id, { comments: next, nextCursor: cached?.nextCursor ?? nextCursor });
+      return next;
+    });
+
+    // Update comment count
+    const nextCommentCount = commentCount + 1;
+    setCommentCount(nextCommentCount);
+    if (postCacheKey) {
+      const existing = interactionsCache.get(postCacheKey) || {};
+      interactionsCache.set(postCacheKey, { ...existing, commentCount: nextCommentCount });
+    }
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("post_interaction_updated", {
+        detail: { postId: post.id, commentCount: nextCommentCount }
+      }));
+    }
 
     // 2. Perform background request
     setIsSubmitting(true);
@@ -1015,15 +1182,46 @@ export default function PostDetailModal({ isOpen, onClose, post, currentUser, ta
       if (res.success && res.comment) {
         setComments(prev => {
           const next = prev.map(c => c.id === tempId ? res.comment : c);
-          commentsCache.set(post.id, { comments: next, nextCursor });
+          const cached = commentsCache.get(post.id);
+          commentsCache.set(post.id, { comments: next, nextCursor: cached?.nextCursor ?? nextCursor });
           return next;
         });
       } else {
-        setComments(prev => prev.filter(c => c.id !== tempId));
+        setComments(prev => {
+          const next = prev.filter(c => c.id !== tempId);
+          const cached = commentsCache.get(post.id);
+          commentsCache.set(post.id, { comments: next, nextCursor: cached?.nextCursor ?? nextCursor });
+          return next;
+        });
+        setCommentCount(commentCount);
+        if (postCacheKey) {
+          const existing = interactionsCache.get(postCacheKey) || {};
+          interactionsCache.set(postCacheKey, { ...existing, commentCount: commentCount });
+        }
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("post_interaction_updated", {
+            detail: { postId: post.id, commentCount: commentCount }
+          }));
+        }
       }
     } catch (err) {
       console.error("Error submitting comment:", err);
-      setComments(prev => prev.filter(c => c.id !== tempId));
+      setComments(prev => {
+        const next = prev.filter(c => c.id !== tempId);
+        const cached = commentsCache.get(post.id);
+        commentsCache.set(post.id, { comments: next, nextCursor: cached?.nextCursor ?? nextCursor });
+        return next;
+      });
+      setCommentCount(commentCount);
+      if (postCacheKey) {
+        const existing = interactionsCache.get(postCacheKey) || {};
+        interactionsCache.set(postCacheKey, { ...existing, commentCount: commentCount });
+      }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("post_interaction_updated", {
+          detail: { postId: post.id, commentCount: commentCount }
+        }));
+      }
     } finally {
       setIsSubmitting(false);
     }

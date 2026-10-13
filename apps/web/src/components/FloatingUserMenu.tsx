@@ -46,7 +46,7 @@ export default function FloatingUserMenu({
       <div className="relative group mx-0.5 sm:mx-1" ref={langRef}>
         <button
           onClick={() => setIsLangOpen(!isLangOpen)}
-          className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full bg-white dark:bg-[#3A3B3C] shadow-md hover:bg-gray-100 dark:hover:bg-[#4E4F50] transition-colors text-black dark:text-[#E4E6EB] text-[12px] sm:text-[13px] font-semibold cursor-pointer"
+          className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full bg-white dark:bg-[#3A3B3C] shadow-md hover:bg-gray-100 dark:hover:bg-[#4E4F50] active:scale-95 active:bg-gray-200 dark:active:bg-[#4E4F50] transition-all duration-150 text-black dark:text-[#E4E6EB] text-[12px] sm:text-[13px] font-semibold cursor-pointer select-none"
         >
           {locale === "id" ? (
             <svg
@@ -84,7 +84,7 @@ export default function FloatingUserMenu({
                 const pathWithoutLocale = currentPath.replace(/^\/(id|en)/, "");
                 window.location.href = "/id" + (pathWithoutLocale || "/home");
               }}
-              className={`w-full flex items-center gap-2.5 p-1.5 sm:p-2 rounded-lg transition-colors cursor-pointer ${
+              className={`w-full flex items-center gap-2.5 p-1.5 sm:p-2 rounded-lg active:scale-[0.98] transition-all duration-150 cursor-pointer select-none ${
                 locale === "id"
                   ? "bg-[#E4E6EB] dark:bg-[#3A3B3C]"
                   : "hover:bg-gray-200 dark:hover:bg-[#3A3B3C]"
@@ -111,7 +111,7 @@ export default function FloatingUserMenu({
                 const pathWithoutLocale = currentPath.replace(/^\/(id|en)/, "");
                 window.location.href = "/en" + (pathWithoutLocale || "/home");
               }}
-              className={`w-full flex items-center gap-2.5 p-1.5 sm:p-2 rounded-lg transition-colors mt-1 cursor-pointer ${
+              className={`w-full flex items-center gap-2.5 p-1.5 sm:p-2 rounded-lg active:scale-[0.98] transition-all duration-150 mt-1 cursor-pointer select-none ${
                 locale === "en"
                   ? "bg-[#E4E6EB] dark:bg-[#3A3B3C]"
                   : "hover:bg-gray-200 dark:hover:bg-[#3A3B3C]"
@@ -143,7 +143,7 @@ export default function FloatingUserMenu({
           className="relative cursor-pointer group"
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
         >
-          <button className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:brightness-95 transition-all flex items-center justify-center overflow-hidden border border-emerald-600 dark:border-emerald-400 shrink-0 shadow-md">
+          <button className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:brightness-95 active:scale-90 transition-all duration-150 flex items-center justify-center overflow-hidden border border-emerald-600 dark:border-emerald-400 shrink-0 shadow-md select-none">
             {isProfileLoading ? (
               <div className="w-full h-full bg-gray-300 dark:bg-gray-700 animate-pulse rounded-full" />
             ) : (

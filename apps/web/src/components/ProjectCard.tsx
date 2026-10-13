@@ -206,9 +206,21 @@ export default function ProjectCard({
   useEffect(() => {
     loadInteractions();
     const handleRefresh = () => loadInteractions();
+    const handleProjectSync = (e: any) => {
+      if (e.detail?.projectId === p.id) {
+        if (e.detail.myReaction !== undefined) setMyReaction(e.detail.myReaction);
+        if (e.detail.likeCount !== undefined) setLikeCount(e.detail.likeCount);
+        if (e.detail.commentCount !== undefined) setCommentCount(e.detail.commentCount);
+        if (e.detail.hasSaved !== undefined) setIsSaved(e.detail.hasSaved);
+      }
+    };
     window.addEventListener("refresh_projects", handleRefresh);
-    return () => window.removeEventListener("refresh_projects", handleRefresh);
-  }, [loadInteractions]);
+    window.addEventListener("project_interaction_updated", handleProjectSync);
+    return () => {
+      window.removeEventListener("refresh_projects", handleRefresh);
+      window.removeEventListener("project_interaction_updated", handleProjectSync);
+    };
+  }, [loadInteractions, p.id]);
 
   const handleSave = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -287,9 +299,38 @@ export default function ProjectCard({
     });
     invalidateStargazersCache(p.id);
 
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("project_interaction_updated", {
+        detail: {
+          projectId: p.id,
+          myReaction: next.isStarred ? "STAR" : null,
+          likeCount: next.starCount,
+          hasSaved: isSaved,
+        }
+      }));
+    }
+
     try {
-      await toggleLike(activeUserId, "project", p.id, "STAR");
-      window.dispatchEvent(new Event("refresh_projects"));
+      const res = await toggleLike(activeUserId, "project", p.id, "STAR");
+      if (!res?.success) {
+        setMyReaction(prevStarred ? "STAR" : null);
+        setLikeCount(likeCount);
+        interactionsCache.set(cacheKey, {
+          ...interactionsCache.get(cacheKey),
+          myReaction: prevStarred ? "STAR" : null,
+          likeCount: likeCount,
+        });
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("project_interaction_updated", {
+            detail: {
+              projectId: p.id,
+              myReaction: prevStarred ? "STAR" : null,
+              likeCount: likeCount,
+              hasSaved: isSaved,
+            }
+          }));
+        }
+      }
     } catch (e) {
       setMyReaction(prevStarred ? "STAR" : null);
       setLikeCount(likeCount);
@@ -298,6 +339,16 @@ export default function ProjectCard({
         myReaction: prevStarred ? "STAR" : null,
         likeCount: likeCount,
       });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("project_interaction_updated", {
+          detail: {
+            projectId: p.id,
+            myReaction: prevStarred ? "STAR" : null,
+            likeCount: likeCount,
+            hasSaved: isSaved,
+          }
+        }));
+      }
     } finally {
       setIsLikeLoading(false);
     }

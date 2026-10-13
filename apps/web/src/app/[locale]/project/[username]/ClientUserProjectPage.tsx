@@ -130,27 +130,59 @@ export default function ClientUserProjectPage({ username, initialProjects, initi
       const res = await fetchPromise;
       if (res.success && res.user) {
         const fetchedProjects = res.projects || [];
+        const hasClientToken = typeof window !== "undefined" && !!localStorage.getItem("token");
+        const currentActiveUserId = user?.id || (typeof window !== "undefined" ? getClientTokenUser()?.id : undefined);
+        const currentUserKey = resolveInteractionUserKey(currentActiveUserId, hasClientToken);
+
+        const mergedProjects = currentUserKey
+          ? fetchedProjects.map((p: any) => {
+              const pCacheKey = `interaction_project_${p.id}_${currentUserKey}`;
+              if (interactionsCache.has(pCacheKey)) {
+                const cached = interactionsCache.get(pCacheKey);
+                return {
+                  ...p,
+                  _count: {
+                    ...p._count,
+                    likes: cached.likeCount !== undefined ? cached.likeCount : p._count?.likes,
+                  }
+                };
+              }
+              return p;
+            })
+          : fetchedProjects;
+
         setProfileUser(res.user);
-        setProjects(fetchedProjects);
+        setProjects(mergedProjects);
         
-        projectsCache.set(cacheKey, { user: res.user, projects: fetchedProjects });
-        projectsCache.set(res.user.id, { projects: fetchedProjects, hasMore: fetchedProjects.length > 3 });
+        projectsCache.set(cacheKey, { user: res.user, projects: mergedProjects });
+        projectsCache.set(res.user.id, { projects: mergedProjects, hasMore: mergedProjects.length > 3 });
       } else if (!projectsCache.has(cacheKey)) {
         router.push(`/${locale}/404`);
       }
     } finally {
       setIsLoading(false);
     }
-  }, [decodedUsername, router, locale, initialProfileUser, initialProjects]);
+  }, [decodedUsername, router, locale, initialProfileUser, initialProjects, user?.id]);
 
   useEffect(() => {
     loadProjects();
     const handleRefresh = () => {
       loadProjects();
     };
+    const handleProjectSync = (e: any) => {
+      const { projectId, likeCount } = e.detail || {};
+      if (projectId && likeCount !== undefined) {
+        setProjects(prev => prev.map(p => p.id === projectId ? {
+          ...p,
+          _count: { ...p._count, likes: likeCount }
+        } : p));
+      }
+    };
     window.addEventListener("refresh_projects", handleRefresh);
+    window.addEventListener("project_interaction_updated", handleProjectSync);
     return () => {
       window.removeEventListener("refresh_projects", handleRefresh);
+      window.removeEventListener("project_interaction_updated", handleProjectSync);
     };
   }, [loadProjects]);
 
