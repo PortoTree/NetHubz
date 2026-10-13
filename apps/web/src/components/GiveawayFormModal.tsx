@@ -273,7 +273,7 @@ export default function GiveawayFormModal({ isOpen, onClose, onSave, currentUser
         </div>
 
         {/* Body */}
-        <div className="p-4 overflow-y-auto flex flex-col gap-5">
+        <div className="p-4 overflow-y-auto no-scrollbar md:custom-scrollbar flex flex-col gap-5">
           {/* Title */}
           <section>
             <h3 className={sectionTitle}>{t("titleLabel")}</h3>

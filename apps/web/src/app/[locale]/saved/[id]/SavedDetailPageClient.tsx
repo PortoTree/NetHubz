@@ -64,6 +64,25 @@ export default function SavedDetailPageClient({ folderId }: { folderId: string }
     return () => document.removeEventListener("mousedown", handleGlobalClick);
   }, []);
 
+  useEffect(() => {
+    const isAnyModalOpen = Boolean(
+      renameFolderState ||
+      deleteFolderId ||
+      infoFolderData ||
+      allowUserFolder
+    );
+
+    if (isAnyModalOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [renameFolderState, deleteFolderId, infoFolderData, allowUserFolder]);
+
   const handleRenameSubmit = async () => {
     if (!renameFolderState?.name.trim() || !user?.id) return;
     setIsRenaming(true);
@@ -410,17 +429,27 @@ export default function SavedDetailPageClient({ folderId }: { folderId: string }
 
       {/* Info Modal */}
       {infoFolderData && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white dark:bg-[#242526] rounded-xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200 relative">
-            <div className="p-4 border-b border-gray-200 dark:border-[#3A3B3C] flex justify-between items-center bg-gray-50 dark:bg-[#18191A]">
+        <div 
+          className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50"
+          onClick={() => setInfoFolderData(null)}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white dark:bg-[#242526] rounded-xl shadow-xl w-full max-w-sm max-h-[85vh] sm:max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200 relative"
+          >
+            <div className="p-4 border-b border-gray-200 dark:border-[#3A3B3C] flex justify-between items-center bg-gray-50 dark:bg-[#18191A] shrink-0">
               <h3 className="font-bold text-gray-900 dark:text-[#E4E6EB]">
                 {t("folderInfo") || "Informasi Folder"}
               </h3>
-              <button onClick={() => setInfoFolderData(null)} className="text-gray-500 hover:text-gray-700 dark:text-[#B0B3B8] dark:hover:text-[#E4E6EB] p-1 rounded-full hover:bg-gray-200 dark:hover:bg-[#3A3B3C]">
+              <button 
+                onClick={() => setInfoFolderData(null)} 
+                className="text-gray-500 hover:text-gray-700 dark:text-[#B0B3B8] dark:hover:text-[#E4E6EB] p-1 rounded-full hover:bg-gray-200 dark:hover:bg-[#3A3B3C] active:scale-90 transition-all cursor-pointer"
+                aria-label="Tutup"
+              >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-4 overflow-y-auto overscroll-contain flex-1 custom-scrollbar">
               <div>
                 <span className="block text-xs font-semibold text-gray-500 dark:text-[#B0B3B8] uppercase tracking-wider mb-1">
                   {t("collectionNameLabel") || "Nama Folder"}
@@ -470,7 +499,7 @@ export default function SavedDetailPageClient({ folderId }: { folderId: string }
                   <span className="block text-xs font-semibold text-gray-500 dark:text-[#B0B3B8] uppercase tracking-wider mb-2">
                     {t("member") || "Member"} ({infoFolderData.members.length})
                   </span>
-                  <div className="flex flex-col gap-2 max-h-32 overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="flex flex-col gap-2">
                     {infoFolderData.members.map((member: any) => (
                       <div key={member.id} className="flex items-center gap-2 p-1.5 hover:bg-gray-50 dark:hover:bg-[#3A3B3C]/50 rounded-lg transition-colors">
                         {member.user?.profile?.avatarUrl ? (

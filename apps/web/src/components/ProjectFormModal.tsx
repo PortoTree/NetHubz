@@ -246,7 +246,7 @@ export default function ProjectFormModal({
   return createPortal(
     <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-black/60 dark:bg-black/80 px-4 py-6">
       <div 
-        className="w-full max-w-[550px] max-h-full overflow-y-auto bg-white dark:bg-[#242526] rounded-2xl shadow-2xl flex flex-col animate-in fade-in zoom-in duration-200"
+        className="w-full max-w-[550px] max-h-full overflow-y-auto no-scrollbar md:custom-scrollbar bg-white dark:bg-[#242526] rounded-2xl shadow-2xl flex flex-col animate-in fade-in zoom-in duration-200"
       >
         {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-center p-4 border-b border-gray-200 dark:border-[#3E4042] bg-white dark:bg-[#242526] rounded-t-2xl">

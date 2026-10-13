@@ -86,7 +86,7 @@ export default function SaveToFolderModal({ isOpen, onClose, userId, targetType,
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-2">
+        <div className="flex-1 overflow-y-auto no-scrollbar p-2">
           {isLoading ? (
             <div className="p-4 flex justify-center">
               <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>

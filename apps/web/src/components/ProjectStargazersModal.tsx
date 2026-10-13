@@ -86,7 +86,7 @@ export default function ProjectStargazersModal({
         </div>
 
         {/* Body list */}
-        <div className="p-3 overflow-y-auto flex-1 divide-y divide-gray-100 dark:divide-[#3A3B3C]">
+        <div className="p-3 overflow-y-auto no-scrollbar md:custom-scrollbar flex-1 divide-y divide-gray-100 dark:divide-[#3A3B3C]">
           {isLoading ? (
             <div className="flex flex-col gap-3 p-4">
               {[1, 2, 3].map((i) => (

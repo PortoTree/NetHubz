@@ -25,46 +25,77 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* ─── Prevent layout shift from scrollbar appearing/disappearing ──────────────
-   Strategy: always reserve a tiny 4px scrollbar channel via overflow-y: scroll,
-   but make the track transparent and the thumb extremely subtle.
-   Result: layout is stable AND there's no visible "cut" strip on short pages. */
-/* Scrollbar thumb is visible when content IS scrollable (thumb auto-hides
-   when page is too short to scroll — no thumb = no overflow). Track stays
-   6px transparent so no visual "cut" on short pages. Layout is always stable. */
+/* ─── Scrollbar Behavior: Desktop vs Mobile ──────────────────────────────────
+   Desktop: 6px subtle scrollbar channel via overflow-y: scroll to prevent layout shift.
+   Mobile (< 768px): Scrollbar completely hidden for sleek native app feel. */
 html {
-  overflow-y: scroll;
   overflow-x: hidden; /* Prevent horizontal scroll that breaks fixed bottom nav */
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.25) transparent; /* Firefox */
 }
 body {
   overflow-x: hidden; /* Extra safety: prevent any element from widening the body */
 }
-html::-webkit-scrollbar {
-  width: 6px;
-}
-html::-webkit-scrollbar-track {
-  background: transparent;
-}
-html::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.25);
-  border-radius: 10px;
-}
-html::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(0, 0, 0, 0.4);
-}
-html.dark {
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent; /* Firefox dark */
-}
-html.dark::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.2);
-}
-html.dark::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.35);
+
+/* Desktop: Stable 6px scrollbar channel */
+@media (min-width: 769px) {
+  html {
+    overflow-y: scroll;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.25) transparent; /* Firefox */
+  }
+  html::-webkit-scrollbar {
+    width: 6px;
+  }
+  html::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  html::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.25);
+    border-radius: 10px;
+  }
+  html::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.4);
+  }
+  html.dark {
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent; /* Firefox dark */
+  }
+  html.dark::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+  html.dark::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.35);
+  }
 }
 
-/* Sidebar Scrollbar Auto-Hide */
+/* Mobile: Hide scrollbars completely for native-app experience */
+@media (max-width: 768px) {
+  html, body {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none !important;
+    width: 0px !important;
+    height: 0px !important;
+  }
+
+  /* Automatically hide specialty scrollbars on mobile */
+  .chat-scrollbar,
+  .sidebar-scrollbar,
+  .custom-scrollbar {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+  .chat-scrollbar::-webkit-scrollbar,
+  .sidebar-scrollbar::-webkit-scrollbar,
+  .custom-scrollbar::-webkit-scrollbar {
+    display: none !important;
+    width: 0px !important;
+    height: 0px !important;
+  }
+}
+
+/* Sidebar Scrollbar Auto-Hide (Desktop) */
 .sidebar-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
@@ -93,7 +124,7 @@ html.dark::-webkit-scrollbar-thumb:hover {
   background-color: #4E4F50;
 }
 
-/* Chat Room Scrollbar */
+/* Chat Room Scrollbar (Desktop) */
 .chat-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
@@ -114,13 +145,17 @@ html.dark::-webkit-scrollbar-thumb:hover {
   background-color: rgba(255, 255, 255, 0.3);
 }
 
-/* Hide scrollbar for clean mockups */
-.hide-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+/* Hide scrollbar utility (both .hide-scrollbar and .no-scrollbar) */
+.hide-scrollbar,
+.no-scrollbar {
+  -ms-overflow-style: none !important;  /* IE and Edge */
+  scrollbar-width: none !important;  /* Firefox */
 }
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
+.hide-scrollbar::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0px !important;
+  height: 0px !important;
 }
 
 /* ── Rich Text Editor (Tiptap / ProseMirror) ───────────────── */

@@ -1063,7 +1063,7 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
                 </div>
                 {/* Thumbnails below the main image (if > 1) */}
                 {post.mediaUrls.length > 1 && (
-                  <div className="h-24 min-h-[96px] bg-black/50 p-2 flex items-center justify-center gap-2 overflow-x-auto">
+                  <div className="h-24 min-h-[96px] bg-black/50 p-2 flex items-center justify-center gap-2 overflow-x-auto no-scrollbar md:custom-scrollbar">
                     {post.mediaUrls.map((url: string, idx: number) => (
                       <button 
                         key={idx}
@@ -1080,7 +1080,7 @@ export default function PostCard({ post, currentUser, onProfileClick, isHighligh
               </div>
             ) : (
               /* Modal Grid View */
-              <div className="flex-1 w-full overflow-y-auto py-10 px-4">
+              <div className="flex-1 w-full overflow-y-auto no-scrollbar md:custom-scrollbar py-10 px-4">
                 <div className="grid gap-3 w-full max-w-xl mx-auto grid-cols-2">
                   {post.mediaUrls.map((url: string, idx: number) => (
                     <div 

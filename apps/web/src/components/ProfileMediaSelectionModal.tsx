@@ -96,7 +96,7 @@ export default function ProfileMediaSelectionModal({
         </div>
 
         {/* Content */}
-        <div className="p-6 h-[300px] overflow-y-auto">
+        <div className="p-6 h-[300px] overflow-y-auto no-scrollbar md:custom-scrollbar">
           {activeTab === "upload" ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mb-4">

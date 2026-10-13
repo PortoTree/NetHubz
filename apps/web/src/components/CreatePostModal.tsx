@@ -478,7 +478,7 @@ export default function CreatePostModal({ isOpen, onClose, currentUser, onSucces
         </div>
 
         {/* Body */}
-        <div className="p-4 flex flex-col flex-1 overflow-y-auto">
+        <div className="p-4 flex flex-col flex-1 overflow-y-auto no-scrollbar md:custom-scrollbar">
           {/* User Info */}
           <div className="flex items-center gap-3 mb-4">
             <img src={currentUser?.profile?.avatarUrl || "/default-avatar.svg"} className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-[#3E4042]" />
@@ -584,7 +584,7 @@ export default function CreatePostModal({ isOpen, onClose, currentUser, onSucces
           </div>
 
           {/* Textarea Layered Preview */}
-          <div className="overflow-y-auto max-h-[300px] mt-2 mb-2 relative">
+          <div className="overflow-y-auto no-scrollbar md:custom-scrollbar max-h-[300px] mt-2 mb-2 relative">
             <div className="relative min-h-[120px]">
               {/* Background preview */}
               <div 
@@ -989,7 +989,7 @@ export default function CreatePostModal({ isOpen, onClose, currentUser, onSucces
               {mediaTab === 'file' ? (
                 tempFilePreviews.length > 0 ? (
                   <div className="flex-1 flex flex-col min-h-0">
-                    <div className="flex-1 overflow-y-auto pr-2 min-h-0 mb-2">
+                    <div className="flex-1 overflow-y-auto no-scrollbar md:custom-scrollbar pr-2 min-h-0 mb-2">
                       <div className="grid grid-cols-2 gap-2">
                         {tempFilePreviews.map((p, idx) => (
                           <div key={idx} className="relative w-full h-[150px] bg-gray-100 dark:bg-black/50 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
@@ -1117,7 +1117,7 @@ export default function CreatePostModal({ isOpen, onClose, currentUser, onSucces
               )}
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
+            <div className="flex-1 overflow-y-auto no-scrollbar md:custom-scrollbar p-4 flex flex-col gap-2">
               {isSearchingTags ? (
                 <div className="flex justify-center py-4">
                   <div className="animate-spin rounded-full h-6 w-6 border-2 border-[#1877F2] border-t-transparent"></div>

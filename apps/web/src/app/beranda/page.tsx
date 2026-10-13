@@ -490,7 +490,7 @@ export default function Beranda() {
                </div>
 
                {/* Chat List */}
-               <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full">
+               <div className="flex-1 overflow-y-auto no-scrollbar md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:bg-gray-300 md:[&::-webkit-scrollbar-thumb]:rounded-full">
                   {dummyChats.map((chat, idx) => (
                    <div key={idx} className="relative group flex items-center gap-3 p-3 hover:bg-[#F2F2F2] dark:hover:bg-[#3A3B3C] cursor-pointer transition-colors">
                       <div className="relative w-12 h-12 shrink-0">
@@ -595,7 +595,7 @@ export default function Beranda() {
           </div>
 
           {/* Contact List */}
-          <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full">
+          <div className="flex-1 overflow-y-auto no-scrollbar md:[&::-webkit-scrollbar]:w-2 md:[&::-webkit-scrollbar-thumb]:bg-gray-300 md:[&::-webkit-scrollbar-thumb]:rounded-full">
              {/* Pam Faiz */}
              <div className="flex items-center gap-3 p-3 hover:bg-[#F2F2F2] dark:hover:bg-[#3A3B3C] cursor-pointer transition-colors">
                 <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 overflow-hidden border border-emerald-600 dark:border-emerald-400">
