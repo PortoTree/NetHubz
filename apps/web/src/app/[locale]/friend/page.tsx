@@ -1,6 +1,6 @@
 "use client";
-import ClientFriendPage from "./ClientFriendPage";
+import FriendPageClient from "./FriendPageClient";
 
 export default function Page() {
-  return <ClientFriendPage />;
+  return <FriendPageClient />;
 }

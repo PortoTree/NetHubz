@@ -1206,5 +1206,49 @@
         "defaultFallbackProject": "Check out this project on NetHubz",
         "other": "More",
         "toastInstagram": "Link copied! Open Instagram to share."
+    },
+    "friends": {
+        "title": "Friends",
+        "allFriends": "All Friends",
+        "requests": "Friend Requests",
+        "suggestions": "Suggestions",
+        "searchPlaceholder": "Search friends or @username...",
+        "recentSearches": "Recent Searches",
+        "clearAll": "Clear All",
+        "seeAll": "See All",
+        "backToAll": "Back to All Friends",
+        "sendMessage": "Send Message",
+        "confirm": "Confirm",
+        "deleteRequest": "Delete",
+        "unfriend": "Unfriend",
+        "block": "Block",
+        "viewProfile": "View Profile",
+        "addFriend": "Add Friend",
+        "requestSent": "Request Sent",
+        "noFriends": "No friends yet. Find and add new friends!",
+        "noRequests": "No new friend requests.",
+        "noSuggestions": "No new suggestions available.",
+        "noSearchResults": "No users found matching your search.",
+        "follow": "Follow",
+        "blockModal": {
+            "title": "Block User?",
+            "description": "If you block this user, they won't be able to view your profile, send messages, or add you as a friend.",
+            "cancel": "Cancel",
+            "confirm": "Confirm Block"
+        },
+        "rejectModal": {
+            "title": "Delete Friend Request?",
+            "description": "If you delete this request, the friend request from this user will be removed from your list. The user will not be notified that their request was declined.",
+            "cancel": "Cancel",
+            "confirm": "Confirm Delete"
+        },
+        "toast": {
+            "requestAccepted": "Friend request accepted!",
+            "requestRejected": "Friend request deleted.",
+            "unfriended": "Removed from friends.",
+            "requestSent": "Friend request sent!",
+            "blocked": "User has been blocked.",
+            "actionFailed": "Failed to process request."
+        }
     }
 }
